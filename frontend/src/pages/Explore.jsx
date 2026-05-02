@@ -31,7 +31,7 @@ const Explore = () => {
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, provider);
       const data = await contract.fetchMarketItems();
 
-      const cacheKey = 'provenance_market_metadata_v3';
+      const cacheKey = 'provenance_market_metadata_v4';
       let cache = {};
       try {
         const savedCache = sessionStorage.getItem(cacheKey);

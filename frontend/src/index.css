@@ -21,7 +21,7 @@ body {
 
 /* RainbowKit Custom Theme Overrides */
 [data-rk] {
-  --rk-colors-modalBackground: rgba(11, 12, 16, 0.95) !important;
+  --rk-colors-modalBackground: rgba(11, 12, 16, 0.85) !important;
   --rk-colors-modalBorder: #45A29E !important;
   --rk-colors-modalText: #C5C6C7 !important;
   --rk-colors-modalTextSecondary: #45A29E !important;

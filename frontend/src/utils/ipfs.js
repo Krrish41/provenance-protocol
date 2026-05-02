@@ -6,29 +6,14 @@ const gateways = [
 
 /**
  * Resolves IPFS URIs into reliable HTTP gateway URLs.
- * Priority: Pinata -> IPFS.io -> Cloudflare
- */
-/**
- * Resolves IPFS URIs into reliable HTTP gateway URLs.
- * Cycles through gateways for maximum reliability.
  */
 export const resolveIPFS = (url) => {
-  if (!url) return '';
-  
-  // If it's already a gateway URL, ensure it's using a fast one
-  if (url.includes('ipfs.io') || url.includes('gateway.pinata.cloud')) {
-    // Keep it, but we could also normalize it here
+  if (!url || typeof url !== 'string') return '';
+  if (url.startsWith('ipfs://')) {
+    const path = url.replace('ipfs://', '');
+    return `${gateways[0]}${path}`; // Use primary, then can iterate through gateways for fallback
   }
-
-  const cid = url.replace('ipfs://', '').replace('https://gateway.pinata.cloud/ipfs/', '').replace('https://ipfs.io/ipfs/', '').replace('https://cloudflare-ipfs.com/ipfs/', '');
-
-  // Handle various formats
-  if (url.startsWith('ipfs://') || url.startsWith('Qm') || url.startsWith('ba') || url.includes('/ipfs/')) {
-    const cleanCID = cid.split('?')[0]; // Remove queries
-    return `https://cloudflare-ipfs.com/ipfs/${cleanCID}`; // Cloudflare is generally fastest for media
-  }
-
-  return url; 
+  return url; // Assume standard HTTP/HTTPS otherwise
 };
 
 // For backward compatibility if any file still uses getIPFSUrl
