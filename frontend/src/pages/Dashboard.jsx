@@ -129,6 +129,7 @@ const Dashboard = () => {
           nft={selectedNft} 
           isOpen={!!selectedNft} 
           onClose={() => setSelectedNft(null)} 
+          onAction={listNFT}
         />
       )}
     </motion.div>

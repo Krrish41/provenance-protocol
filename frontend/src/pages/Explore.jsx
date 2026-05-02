@@ -191,6 +191,7 @@ const Explore = () => {
           nft={selectedNft} 
           isOpen={!!selectedNft} 
           onClose={() => setSelectedNft(null)} 
+          onAction={buyNft}
         />
       )}
     </motion.div>
