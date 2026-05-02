@@ -1,12 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
-import '@rainbow-me/rainbowkit/styles.css';
 
-import { getDefaultConfig, RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
-import { WagmiProvider } from 'wagmi';
+import { createConfig, http, WagmiProvider } from 'wagmi';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { defineChain } from 'viem';
+import { injected, walletConnect } from 'wagmi/connectors';
 
 import App from './App.jsx';
 import ErrorBoundary from './components/ui/ErrorBoundary';
@@ -26,63 +25,18 @@ export const scaiMainnet = defineChain({
   },
 });
 
-import { metaMaskWallet, rainbowWallet } from '@rainbow-me/rainbowkit/wallets';
-
 const projectId = '8952458467431e676a161864115f5d81';
 
-// Custom wallet wrappers with highly thematic installation prompts
-const customMetaMask = () => {
-  const wallet = metaMaskWallet({ projectId });
-  return {
-    ...wallet,
-    downloadUrls: {
-      browserExtension: 'https://metamask.io/download/',
-    },
-    instructions: {
-      steps: [
-        {
-          description: 'To interact with the Provenance Protocol, you must install the official browser extension.',
-          step: 'install',
-          title: 'MetaMask Not Detected',
-        },
-      ],
-    },
-    qrCode: undefined,
-  };
-};
-
-const customRainbow = () => {
-  const wallet = rainbowWallet({ projectId });
-  return {
-    ...wallet,
-    downloadUrls: {
-      browserExtension: 'https://rainbow.me/download',
-    },
-    instructions: {
-      steps: [
-        {
-          description: 'To interact with the Provenance Protocol, you must install the official browser extension.',
-          step: 'install',
-          title: 'Rainbow Not Detected',
-        },
-      ],
-    },
-    qrCode: undefined,
-  };
-};
-
-const config = getDefaultConfig({
-  appName: 'Provenance Protocol',
-  projectId,
+const config = createConfig({
   chains: [scaiMainnet],
-  wallets: [{
-    groupName: 'Recommended',
-    wallets: [
-      customMetaMask,
-      customRainbow,
-    ],
-  }],
-  ssr: false,
+  connectors: [
+    injected({ target: 'metaMask' }),
+    injected({ target: 'rainbow' }),
+    walletConnect({ projectId }),
+  ],
+  transports: {
+    [scaiMainnet.id]: http(),
+  },
 });
 
 const queryClient = new QueryClient();
@@ -91,15 +45,9 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider theme={darkTheme({
-          accentColor: '#66FCF1',
-          accentColorForeground: '#0B0C10',
-          borderRadius: 'small',
-        })}>
-          <ErrorBoundary>
-            <App />
-          </ErrorBoundary>
-        </RainbowKitProvider>
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
       </QueryClientProvider>
     </WagmiProvider>
   </StrictMode>,
