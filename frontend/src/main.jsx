@@ -30,13 +30,22 @@ import { metaMaskWallet, rainbowWallet } from '@rainbow-me/rainbowkit/wallets';
 
 const projectId = '8952458467431e676a161864115f5d81';
 
-// Custom wallet wrappers to strip mobile options
+// Custom wallet wrappers to provide installation instructions
 const customMetaMask = () => {
   const wallet = metaMaskWallet({ projectId });
   return {
     ...wallet,
     downloadUrls: {
       browserExtension: 'https://metamask.io/download/',
+    },
+    instructions: {
+      steps: [
+        {
+          description: 'Please install the MetaMask extension to proceed.',
+          step: 'install',
+          title: 'MetaMask Extension Not Found',
+        },
+      ],
     },
     qrCode: undefined,
   };
@@ -48,6 +57,15 @@ const customRainbow = () => {
     ...wallet,
     downloadUrls: {
       browserExtension: 'https://rainbow.me/download',
+    },
+    instructions: {
+      steps: [
+        {
+          description: 'Please install the Rainbow extension to proceed.',
+          step: 'install',
+          title: 'Rainbow Extension Not Found',
+        },
+      ],
     },
     qrCode: undefined,
   };

@@ -3,32 +3,16 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Boxes, Menu, X } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
-  const handleConnect = async (openConnectModal) => {
+  const handleConnect = (openConnectModal) => {
     try {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      
-      if (!window.ethereum && !isMobile) {
-        toast.error(
-          <div className="flex flex-col gap-1">
-            <span className="font-bold">Extension not detected</span>
-            <span className="text-xs opacity-80">Please install a wallet to proceed.</span>
-            <div className="flex gap-4 mt-2">
-              <a href="https://metamask.io/download/" target="_blank" rel="noreferrer" className="text-[#66FCF1] underline text-xs">MetaMask</a>
-              <a href="https://rainbow.me/download" target="_blank" rel="noreferrer" className="text-[#66FCF1] underline text-xs">Rainbow</a>
-            </div>
-          </div>,
-          { duration: 6000 }
-        );
-      }
-      await openConnectModal();
+      openConnectModal();
     } catch (e) {
-      toast.error("Connection cancelled");
+      console.error("Connection cancelled:", e);
     }
   };
 
