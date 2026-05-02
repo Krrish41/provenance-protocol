@@ -111,21 +111,33 @@ body {
 }
 
 /* Platform-specific 'Get a Wallet' filtering */
-/* GLOBALLY Hide Mobile Options as per request (Focus on Desktop) */
+/* GLOBALLY Hide Mobile Options - Targeted at RainbowKit Structure */
+[data-rk] div[style*="display: flex; flex-direction: column"] > div:has(h2),
+[data-rk] div[style*="display: flex; flex-direction: column"] > div:has(img) {
+  /* We'll use a more surgical approach below */
+}
+
+/* Hide specific mobile indicators */
 [data-rk] img[alt*="Mobile"],
-[data-rk] div[aria-label*="Mobile"],
-[data-rk] button[aria-label*="Mobile"],
+[data-rk] img[src*="apple"],
+[data-rk] img[src*="google-play"],
 [data-rk] a[href*="apple.com"],
-[data-rk] a[href*="play.google.com"],
-[data-rk] div:has(> h2:contains("Mobile")),
-[data-rk] div:has(> div > h2:contains("App")) {
+[data-rk] a[href*="play.google.com"] {
   display: none !important;
 }
 
-/* Ensure 'Get' / 'Add to' buttons for extensions are visible and polished */
+/* Hide the entire mobile card container */
+[data-rk] div[style*="display: flex; flex-direction: column"] > div:has(img[alt*="Mobile"]),
+[data-rk] div[style*="display: flex; flex-direction: column"] > div:has(a[href*="apple.com"]),
+[data-rk] div[style*="display: flex; flex-direction: column"] > div:has(button div:contains("Get the app")) {
+  display: none !important;
+}
+
+/* Fix for Browser Extension Buttons */
 [data-rk] [role="dialog"] a[href*="microsoftedge"],
 [data-rk] [role="dialog"] a[href*="chrome.google.com"],
-[data-rk] [role="dialog"] a[href*="addons.mozilla.org"] {
+[data-rk] [role="dialog"] a[href*="rainbow.me/download"],
+[data-rk] [role="dialog"] a[href*="metamask.io"] {
   display: flex !important;
   visibility: visible !important;
   opacity: 1 !important;
@@ -140,17 +152,30 @@ body {
   align-items: center !important;
   width: fit-content !important;
   margin: 16px auto 0 !important;
-  transition: all 0.2s ease !important;
   box-shadow: 0 4px 14px rgba(102, 252, 241, 0.3) !important;
 }
 
-[data-rk] [role="dialog"] a[href*="microsoftedge"]:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 20px rgba(102, 252, 241, 0.4) !important;
+/* Ensure the Rainbow button specifically shows up */
+[data-rk] div:has(> div > h2:contains("Rainbow")) a,
+[data-rk] div:has(> div > h2:contains("Edge")) a {
+   display: flex !important;
+}
+
+/* Fix persistent 'Opening MetaMask' state when Rainbow is selected */
+/* This is a hack to hide mismatched connecting states */
+[data-rk] div:has(> img[alt="MetaMask"]) + div:contains("Opening MetaMask"):not([style*="display: none"]) {
+  /* Target the text container */
+}
+
+/* Force hide MetaMask icon/text if Rainbow is the selected tab (Tab 2) */
+[data-rk] button[id*="rainbow"]:aria-selected("true") ~ div img[alt="MetaMask"],
+[data-rk] button[id*="rainbow"]:aria-selected("true") ~ div div:contains("MetaMask") {
+  display: none !important;
 }
 
 /* Layout Alignment for Browser Cards */
-[data-rk] div[style*="display: flex; flex-direction: column"]:has(a[href*="browser"]) {
+[data-rk] div[style*="display: flex; flex-direction: column"]:has(img[alt*="Edge"]),
+[data-rk] div[style*="display: flex; flex-direction: column"]:has(img[alt*="Chrome"]) {
   align-items: center !important;
   text-align: center !important;
 }
