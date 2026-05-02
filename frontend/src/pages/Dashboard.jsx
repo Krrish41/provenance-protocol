@@ -8,16 +8,21 @@ import NFTModal from '../components/ui/NFTModal';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import toast from 'react-hot-toast';
 import { resolveIPFS } from '../utils/ipfs';
+import { useAccount } from 'wagmi';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 const Dashboard = () => {
+  const { isConnected } = useAccount();
   const [ownedNfts, setOwnedNfts] = useState([]);
   const [listedNfts, setListedNfts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedNft, setSelectedNft] = useState(null);
 
   useEffect(() => {
-    loadNFTs();
-  }, []);
+    if (isConnected) {
+      loadNFTs();
+    }
+  }, [isConnected]);
 
   async function loadNFTs() {
     try {
@@ -72,6 +77,49 @@ const Dashboard = () => {
 
   function listNFT(nft) {
     toast.error("Reselling logic requires a contract update. Coming soon!");
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh]">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-[#1e2024]/80 border border-[#45A29E]/30 backdrop-blur-md rounded-2xl p-10 max-w-xl w-full text-center shadow-[0_0_40px_rgba(69,162,158,0.1)]"
+        >
+          <div className="w-20 h-20 mx-auto bg-[#45A29E]/10 rounded-full flex items-center justify-center mb-8 border border-[#45A29E]/30">
+            <svg className="w-10 h-10 text-[#66FCF1]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          
+          <h2 className="text-3xl font-bold text-white uppercase tracking-tight mb-4">
+            Authentication Required
+          </h2>
+          
+          <p className="text-[#C5C6C7] mb-10 text-lg leading-relaxed">
+            Please connect your wallet to access your personal Provenance Dashboard and manage your assets.
+          </p>
+          
+          <div className="flex justify-center">
+            <ConnectButton.Custom>
+              {({ openConnectModal, mounted }) => {
+                return (
+                  <button
+                    onClick={openConnectModal}
+                    type="button"
+                    className="btn-primary px-10 py-4 rounded-lg text-lg interactive shadow-[0_0_15px_rgba(102,252,241,0.1)]"
+                    disabled={!mounted}
+                  >
+                    Connect Provenance Wallet
+                  </button>
+                );
+              }}
+            </ConnectButton.Custom>
+          </div>
+        </motion.div>
+      </div>
+    );
   }
 
   return (

@@ -58,10 +58,8 @@ const NFTCard = ({ item, onAction, onClick }) => {
           <button 
             onClick={handleAction}
             disabled={button.disabled || item.isPending}
-            className={`px-4 py-2 rounded transition-colors font-bold text-sm uppercase tracking-wide interactive ${
-              (button.disabled || item.isPending)
-                ? 'bg-[#45A29E]/10 border border-[#45A29E]/30 text-[#45A29E] cursor-not-allowed' 
-                : 'bg-[#66FCF1] border border-[#66FCF1] text-[#0B0C10] hover:shadow-[0_0_15px_rgba(102,252,241,0.5)]'
+            className={`px-4 py-2 rounded btn-primary text-sm interactive ${
+              (button.disabled || item.isPending) ? 'opacity-50' : ''
             }`}
           >
             {item.isPending ? 'Syncing...' : button.text}

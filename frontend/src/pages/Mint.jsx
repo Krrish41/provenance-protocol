@@ -139,11 +139,7 @@ const Mint = () => {
             whileTap={{ scale: 0.98 }}
             onClick={createMarketItem}
             disabled={uploading}
-            className={`w-full py-4 rounded-lg font-bold uppercase tracking-wider transition-all ${
-              uploading 
-                ? 'bg-[#45A29E] text-[#0B0C10] cursor-not-allowed opacity-70' 
-                : 'bg-[#66FCF1] text-[#0B0C10] hover:shadow-[0_0_20px_rgba(102,252,241,0.4)] interactive'
-            }`}
+            className="w-full py-4 rounded-lg btn-primary interactive"
           >
             {uploading ? 'Processing...' : 'Mint & List Asset'}
           </motion.button>

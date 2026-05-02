@@ -9,6 +9,7 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { defineChain } from 'viem';
 
 import App from './App.jsx';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 
 export const scaiMainnet = defineChain({
   id: 34,
@@ -42,7 +43,9 @@ createRoot(document.getElementById('root')).render(
           accentColorForeground: '#0B0C10',
           borderRadius: 'small',
         })}>
-          <App />
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
