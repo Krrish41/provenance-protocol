@@ -111,20 +111,36 @@ body {
 }
 
 /* Platform-specific 'Get a Wallet' filtering */
+/* Desktop: Hide Mobile App options */
 @media (pointer: fine) {
   [data-rk] a[href*="apple.com"],
   [data-rk] a[href*="play.google.com"],
-  [data-rk] div:has(> img[alt*="Mobile"]) {
+  [data-rk] img[alt*="Mobile"],
+  [data-rk] div[aria-label*="Mobile"],
+  [data-rk] button[aria-label*="Mobile"] {
     display: none !important;
   }
 }
 
+/* Mobile: Hide Browser Extension options */
 @media (pointer: coarse) {
   [data-rk] a[href*="chrome.google.com"],
-  [data-rk] a[href*="microsoftedge.microsoft.com"],
-  [data-rk] a[href*="addons.mozilla.org"] {
+  [data-rk] a[href*="microsoftedge"],
+  [data-rk] a[href*="mozilla.org"],
+  [data-rk] img[alt*="Extension"],
+  [data-rk] div[aria-label*="Extension"] {
     display: none !important;
   }
+}
+
+/* Ensure 'Get' buttons for extensions are visible on desktop */
+[data-rk] [role="dialog"] a[href*="microsoftedge"],
+[data-rk] [role="dialog"] a[href*="chrome.google.com"],
+[data-rk] [role="dialog"] a[href*="addons.mozilla.org"] {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  min-height: 40px !important;
 }
 
 /* Global Primary Button Style */
