@@ -6,6 +6,8 @@ import Mint from './pages/Mint';
 import Dashboard from './pages/Dashboard';
 import ProtocolDocs from './pages/ProtocolDocs';
 import Contact from './pages/Contact';
+import TermsOfService from './pages/legal/TermsOfService';
+import PrivacyPolicy from './pages/legal/PrivacyPolicy';
 
 function App() {
   return (
@@ -18,9 +20,12 @@ function App() {
           <Route path="/my-provenance" element={<Dashboard />} />
           <Route path="/protocol-docs" element={<ProtocolDocs />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
         </Routes>
       </Layout>
     </Router>
+
   );
 }
 
