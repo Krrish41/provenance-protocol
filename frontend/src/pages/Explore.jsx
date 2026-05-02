@@ -21,7 +21,6 @@ const Explore = () => {
       if (window.ethereum) {
         provider = new BrowserProvider(window.ethereum);
       } else {
-        // Fallback for incognito/no-wallet users with hardcoded default if ENV is missing
         const rpcUrl = import.meta.env.VITE_SCAI_RPC_URL || "https://34.rpc.thirdweb.com";
         provider = new JsonRpcProvider(rpcUrl);
       }
@@ -29,22 +28,54 @@ const Explore = () => {
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, provider);
       const data = await contract.fetchMarketItems();
 
+      // Retrieve cache from sessionStorage
+      const cacheKey = 'provenance_market_metadata_v1';
+      const cache = JSON.parse(sessionStorage.getItem(cacheKey) || '{}');
+
       const items = await Promise.all(data.map(async i => {
-        const tokenUri = await contract.tokenURI(i.tokenId);
-        const meta = await axios.get(tokenUri);
-        let price = formatEther(i.price.toString());
-        return {
-          price,
-          tokenId: Number(i.tokenId),
-          seller: i.seller.toLowerCase(),
-          owner: i.owner.toLowerCase(),
-          image: meta.data.image,
-          name: meta.data.name,
-          description: meta.data.description
-        };
+        const tokenId = Number(i.tokenId);
+        
+        // Return cached version if available
+        if (cache[tokenId]) {
+          return {
+            ...cache[tokenId],
+            seller: i.seller.toLowerCase(),
+            owner: i.owner.toLowerCase(),
+            price: formatEther(i.price.toString())
+          };
+        }
+
+        try {
+          const tokenUri = await contract.tokenURI(i.tokenId);
+          // Optimize: use Cloudflare for faster metadata reads if using Pinata gateway
+          const optimizedUri = tokenUri.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com');
+          const meta = await axios.get(optimizedUri);
+          
+          const itemData = {
+            tokenId,
+            image: meta.data.image.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com'),
+            name: meta.data.name,
+            description: meta.data.description,
+          };
+
+          // Store in cache
+          cache[tokenId] = itemData;
+          sessionStorage.setItem(cacheKey, JSON.stringify(cache));
+
+          return {
+            ...itemData,
+            price: formatEther(i.price.toString()),
+            seller: i.seller.toLowerCase(),
+            owner: i.owner.toLowerCase(),
+          };
+        } catch (e) {
+          console.error(`Error fetching metadata for token ${tokenId}:`, e);
+          return null;
+        }
       }));
 
-      setNfts(items);
+      // Filter out any failed fetches
+      setNfts(items.filter(item => item !== null));
       setLoading(false);
     } catch (error) {
       console.error("Error loading NFTs:", error);
