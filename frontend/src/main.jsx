@@ -26,10 +26,16 @@ export const scaiMainnet = defineChain({
   },
 });
 
+import { metaMaskWallet, rainbowWallet } from '@rainbow-me/rainbowkit/wallets';
+
 const config = getDefaultConfig({
   appName: 'Provenance Protocol',
   projectId: 'YOUR_PROJECT_ID', // Replaced with a generic placeholder for testing
   chains: [scaiMainnet],
+  wallets: [{
+    groupName: 'Recommended',
+    wallets: [metaMaskWallet, rainbowWallet],
+  }],
   ssr: false,
 });
 const queryClient = new QueryClient();

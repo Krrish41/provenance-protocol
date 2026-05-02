@@ -111,7 +111,7 @@ const Dashboard = () => {
                     className="btn-primary px-10 py-4 rounded-lg text-lg interactive shadow-[0_0_15px_rgba(102,252,241,0.1)]"
                     disabled={!mounted}
                   >
-                    Connect Provenance Wallet
+                    Connect Wallet
                   </button>
                 );
               }}

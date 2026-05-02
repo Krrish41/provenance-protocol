@@ -54,16 +54,14 @@ const Explore = () => {
           ];
           
           let meta = null;
-          for (const url of gateways) {
-            try {
-              const res = await axios.get(url, { timeout: 3000 });
-              if (res.data && (res.data.image || res.data.name)) {
-                meta = res.data;
-                break; 
-              }
-            } catch (e) {
-              continue;
-            }
+          try {
+            const fetchPromise = (url) => axios.get(url, { timeout: 4000 }).then(res => {
+              if (res.data && (res.data.image || res.data.name)) return res.data;
+              throw new Error("Invalid IPFS data");
+            });
+            meta = await Promise.any(gateways.map(fetchPromise));
+          } catch (e) {
+            // All gateways failed, meta remains null
           }
 
           if (!meta) {

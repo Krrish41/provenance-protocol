@@ -30,7 +30,7 @@ body {
 }
 
 /* Wallet Item Hover Effect */
-[data-rk] button[type="button"]:hover {
+[data-rk] button[type="button"]:not(.btn-primary):hover {
   transform: translateX(8px) !important;
   background: rgba(102, 252, 241, 0.05) !important;
   border: 1px solid #66FCF1 !important;
