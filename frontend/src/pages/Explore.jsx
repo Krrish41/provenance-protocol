@@ -28,14 +28,19 @@ const Explore = () => {
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, provider);
       const data = await contract.fetchMarketItems();
 
-      // Retrieve cache from sessionStorage
+      // Retrieve cache with safety wrapper for restrictive incognito modes
       const cacheKey = 'provenance_market_metadata_v1';
-      const cache = JSON.parse(sessionStorage.getItem(cacheKey) || '{}');
+      let cache = {};
+      try {
+        const savedCache = sessionStorage.getItem(cacheKey);
+        if (savedCache) cache = JSON.parse(savedCache);
+      } catch (e) {
+        console.warn("sessionStorage access restricted in this environment.");
+      }
 
       const items = await Promise.all(data.map(async i => {
         const tokenId = Number(i.tokenId);
         
-        // Return cached version if available
         if (cache[tokenId]) {
           return {
             ...cache[tokenId],
@@ -47,20 +52,24 @@ const Explore = () => {
 
         try {
           const tokenUri = await contract.tokenURI(i.tokenId);
-          // Optimize: use Cloudflare for faster metadata reads if using Pinata gateway
+          if (!tokenUri) return null;
+
+          // Normalize and optimize URI
           const optimizedUri = tokenUri.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com');
-          const meta = await axios.get(optimizedUri);
+          const meta = await axios.get(optimizedUri, { timeout: 8000 }); // 8s timeout
           
           const itemData = {
             tokenId,
-            image: meta.data.image.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com'),
-            name: meta.data.name,
-            description: meta.data.description,
+            image: meta.data.image ? meta.data.image.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com') : '',
+            name: meta.data.name || "Unnamed Asset",
+            description: meta.data.description || "No description provided.",
           };
 
-          // Store in cache
-          cache[tokenId] = itemData;
-          sessionStorage.setItem(cacheKey, JSON.stringify(cache));
+          // Store in cache with safety wrapper
+          try {
+            cache[tokenId] = itemData;
+            sessionStorage.setItem(cacheKey, JSON.stringify(cache));
+          } catch (e) {}
 
           return {
             ...itemData,
@@ -74,7 +83,6 @@ const Explore = () => {
         }
       }));
 
-      // Filter out any failed fetches
       setNfts(items.filter(item => item !== null));
       setLoading(false);
     } catch (error) {
