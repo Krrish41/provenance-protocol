@@ -4,12 +4,15 @@ import { BrowserProvider, JsonRpcProvider, Contract, formatEther, parseEther } f
 import axios from 'axios';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import NFTCard from '../components/ui/NFTCard';
+import NFTModal from '../components/ui/NFTModal';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import toast from 'react-hot-toast';
+import { getIPFSUrl } from '../utils/ipfs';
 
 const Explore = () => {
   const [nfts, setNfts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedNft, setSelectedNft] = useState(null);
 
   useEffect(() => {
     loadNFTs();
@@ -29,13 +32,13 @@ const Explore = () => {
       const data = await contract.fetchMarketItems();
 
       // Retrieve cache with safety wrapper for restrictive incognito modes
-      const cacheKey = 'provenance_market_metadata_v1';
+      const cacheKey = 'provenance_market_metadata_v2';
       let cache = {};
       try {
         const savedCache = sessionStorage.getItem(cacheKey);
         if (savedCache) cache = JSON.parse(savedCache);
       } catch (e) {
-        console.warn("sessionStorage access restricted in this environment.");
+        console.warn("sessionStorage access restricted.");
       }
 
       const items = await Promise.all(data.map(async i => {
@@ -56,8 +59,8 @@ const Explore = () => {
 
           // Multi-gateway fallback strategy
           const gateways = [
-            tokenUri.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com'),
-            tokenUri, // Original (Pinata)
+            getIPFSUrl(tokenUri),
+            tokenUri, // Original
             tokenUri.replace('gateway.pinata.cloud', 'ipfs.io')
           ];
           
@@ -70,7 +73,7 @@ const Explore = () => {
                 break; 
               }
             } catch (e) {
-              continue; // Try next gateway
+              continue;
             }
           }
 
@@ -79,8 +82,8 @@ const Explore = () => {
             return {
               tokenId,
               image: '', 
-              name: `Asset #${tokenId} // Processing`,
-              description: "The protocol is currently synchronizing this asset's metadata across the IPFS network. High-resolution media will be available shortly.",
+              name: `Asset #${tokenId} // Syncing`,
+              description: "The protocol is currently synchronizing this asset's metadata. Provenance verification in progress.",
               price: formatEther(i.price.toString()),
               seller: i.seller.toLowerCase(),
               owner: i.owner.toLowerCase(),
@@ -90,7 +93,7 @@ const Explore = () => {
           
           const itemData = {
             tokenId,
-            image: meta.image ? meta.image.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com') : '',
+            image: getIPFSUrl(meta.image),
             name: meta.name || `Asset #${tokenId}`,
             description: meta.description || "No description provided.",
           };
@@ -144,6 +147,7 @@ const Explore = () => {
       toast.dismiss(loadingToast);
       toast.success("Provenance ownership verified. Asset transferred.");
       loadNFTs();
+      if (selectedNft) setSelectedNft(null);
     } catch (error) {
       console.error("Error buying NFT:", error);
       toast.error("Transaction failed. Verify SCAI balance and gas.");
@@ -158,7 +162,7 @@ const Explore = () => {
       className="py-8"
     >
       <div className="flex justify-between items-center mb-8 border-b border-[#45A29E]/30 pb-4">
-        <h2 className="text-3xl font-bold text-white">Explore Market</h2>
+        <h2 className="text-3xl font-bold text-white uppercase tracking-tighter">Explore Market</h2>
         <span className="text-[#45A29E] font-mono text-sm">{nfts.length} Assets Found</span>
       </div>
       
@@ -176,12 +180,22 @@ const Explore = () => {
               key={i} 
               item={nft} 
               onAction={buyNft} 
+              onClick={(nft) => setSelectedNft(nft)}
             />
           ))}
         </div>
       )}
+
+      {selectedNft && (
+        <NFTModal 
+          nft={selectedNft} 
+          isOpen={!!selectedNft} 
+          onClose={() => setSelectedNft(null)} 
+        />
+      )}
     </motion.div>
   );
+
 };
 
 export default Explore;

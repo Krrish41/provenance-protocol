@@ -4,13 +4,16 @@ import { BrowserProvider, Contract, formatEther } from 'ethers';
 import axios from 'axios';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import NFTCard from '../components/ui/NFTCard';
+import NFTModal from '../components/ui/NFTModal';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import toast from 'react-hot-toast';
+import { getIPFSUrl } from '../utils/ipfs';
 
 const Dashboard = () => {
   const [ownedNfts, setOwnedNfts] = useState([]);
   const [listedNfts, setListedNfts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedNft, setSelectedNft] = useState(null);
 
   useEffect(() => {
     loadNFTs();
@@ -26,7 +29,6 @@ const Dashboard = () => {
       const signer = await provider.getSigner();
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
       
-      // Fetch both owned and listed items
       const [ownedData, listedData] = await Promise.all([
         contract.fetchMyNFTs(),
         contract.fetchItemsListed()
@@ -37,7 +39,8 @@ const Dashboard = () => {
           const tokenUri = await contract.tokenURI(i.tokenId);
           let meta = { data: { name: `Asset #${i.tokenId}`, description: '', image: '' } };
           try {
-            meta = await axios.get(tokenUri.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com'), { timeout: 5000 });
+            const url = getIPFSUrl(tokenUri);
+            meta = await axios.get(url, { timeout: 5000 });
           } catch (e) {
             console.warn("Metadata pending for", i.tokenId);
           }
@@ -46,7 +49,7 @@ const Dashboard = () => {
             tokenId: Number(i.tokenId),
             seller: i.seller.toLowerCase(),
             owner: i.owner.toLowerCase(),
-            image: meta.data.image ? meta.data.image.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com') : '',
+            image: getIPFSUrl(meta.data.image),
             name: meta.data.name || `Asset #${i.tokenId}`,
             description: meta.data.description,
           };
@@ -78,7 +81,6 @@ const Dashboard = () => {
       transition={{ duration: 0.5 }}
       className="py-8 space-y-12"
     >
-      {/* Active Listings Section */}
       <section>
         <div className="flex justify-between items-center mb-8 border-b border-[#45A29E]/30 pb-4">
           <h2 className="text-3xl font-bold text-white uppercase tracking-tight">Active Listings</h2>
@@ -94,13 +96,12 @@ const Dashboard = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {listedNfts.map((nft, i) => (
-              <NFTCard key={i} item={nft} onAction={listNFT} />
+              <NFTCard key={i} item={nft} onAction={listNFT} onClick={(nft) => setSelectedNft(nft)} />
             ))}
           </div>
         )}
       </section>
 
-      {/* Holdings Section */}
       <section>
         <div className="flex justify-between items-center mb-8 border-b border-[#45A29E]/30 pb-4">
           <h2 className="text-3xl font-bold text-white uppercase tracking-tight">Personal Holdings</h2>
@@ -117,14 +118,22 @@ const Dashboard = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {ownedNfts.map((nft, i) => (
-              <NFTCard key={i} item={nft} onAction={listNFT} />
+              <NFTCard key={i} item={nft} onAction={listNFT} onClick={(nft) => setSelectedNft(nft)} />
             ))}
           </div>
         )}
       </section>
+
+      {selectedNft && (
+        <NFTModal 
+          nft={selectedNft} 
+          isOpen={!!selectedNft} 
+          onClose={() => setSelectedNft(null)} 
+        />
+      )}
     </motion.div>
   );
-
 };
 
 export default Dashboard;
+

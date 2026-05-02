@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 
-const NFTCard = ({ item, onAction }) => {
+const NFTCard = ({ item, onAction, onClick }) => {
   const { address, isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
 
@@ -19,10 +19,16 @@ const NFTCard = ({ item, onAction }) => {
 
   const button = getButtonState();
 
+  const handleAction = (e) => {
+    e.stopPropagation();
+    button.action();
+  };
+
   return (
     <motion.div 
       whileHover={{ y: -10, boxShadow: '0 10px 30px -10px rgba(102,252,241,0.3)' }}
-      className="bg-[#1e2024]/80 border border-[#45A29E]/30 rounded-xl overflow-hidden backdrop-blur-sm flex flex-col interactive"
+      onClick={() => onClick && onClick(item)}
+      className="bg-[#1e2024]/80 border border-[#45A29E]/30 rounded-xl overflow-hidden backdrop-blur-sm flex flex-col interactive cursor-pointer group"
     >
       <div className="relative aspect-square overflow-hidden bg-[#0B0C10]">
         {item.isPending ? (
@@ -50,12 +56,12 @@ const NFTCard = ({ item, onAction }) => {
             <p className="text-lg font-bold text-[#66FCF1]">{item.price} SCAI</p>
           </div>
           <button 
-            onClick={button.action}
+            onClick={handleAction}
             disabled={button.disabled || item.isPending}
             className={`px-4 py-2 rounded transition-colors font-bold text-sm uppercase tracking-wide interactive ${
               (button.disabled || item.isPending)
                 ? 'bg-[#45A29E]/10 border border-[#45A29E]/30 text-[#45A29E] cursor-not-allowed' 
-                : 'bg-[#66FCF1]/10 border border-[#66FCF1] text-[#66FCF1] hover:bg-[#66FCF1] hover:text-[#0B0C10]'
+                : 'bg-[#66FCF1] border border-[#66FCF1] text-[#0B0C10] hover:shadow-[0_0_15px_rgba(102,252,241,0.5)]'
             }`}
           >
             {item.isPending ? 'Syncing...' : button.text}
