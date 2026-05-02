@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useConnect, useAccount, useDisconnect } from 'wagmi';
+import { useConnect, useAccount } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Download, ExternalLink, ShieldCheck, Wallet } from 'lucide-react';
 
@@ -12,7 +12,7 @@ const UI_STATES = {
 };
 
 const ProvenanceWalletModal = ({ isOpen, onClose }) => {
-  const { connect, connectors, error } = useConnect();
+  const { connect, connectors, error: connectError } = useConnect();
   const { isConnecting, isConnected } = useAccount();
   const [uiState, setUiState] = useState(UI_STATES.DEFAULT);
   const [selectedConnector, setSelectedConnector] = useState(null);
@@ -23,52 +23,62 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
     }
   }, [isConnected, onClose]);
 
+  // Only trigger CONNECTING state if we aren't in an INSTALL state
   useEffect(() => {
-    if (isConnecting) {
+    if (isConnecting && uiState !== UI_STATES.INSTALL_METAMASK && uiState !== UI_STATES.INSTALL_RAINBOW) {
       setUiState(UI_STATES.CONNECTING);
     }
-  }, [isConnecting]);
+  }, [isConnecting, uiState]);
 
   const handleConnectorClick = (connector) => {
     setSelectedConnector(connector);
     
-    // Detection Override Logic
-    const isMetaMask = window.ethereum?.isMetaMask;
-    const isRainbow = window.ethereum?.isRainbow;
+    // STRICT Detection Override Logic
+    const isMetaMask = !!window.ethereum?.isMetaMask;
+    const isRainbow = !!window.ethereum?.isRainbow;
+    const name = connector.name.toLowerCase();
 
-    if (connector.id === 'injected' || connector.name.toLowerCase().includes('metamask')) {
-      if (!isMetaMask && !window.ethereum) {
+    // MetaMask Detection
+    if (name.includes('metamask')) {
+      if (!isMetaMask) {
         setUiState(UI_STATES.INSTALL_METAMASK);
         return;
       }
     }
 
-    if (connector.name.toLowerCase().includes('rainbow')) {
+    // Rainbow Detection
+    if (name.includes('rainbow')) {
       if (!isRainbow) {
         setUiState(UI_STATES.INSTALL_RAINBOW);
         return;
       }
     }
 
-    // If extension found, try connecting
+    // If we reach here, we assume the wallet is present
     try {
-      connect({ connector });
       setUiState(UI_STATES.CONNECTING);
+      connect({ connector });
     } catch (err) {
       setUiState(UI_STATES.ERROR);
     }
   };
 
+  // Reset state when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setUiState(UI_STATES.DEFAULT);
+      setSelectedConnector(null);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  // Filter out duplicates (sometimes browser extensions inject multiple providers)
   const uniqueConnectors = connectors.filter((connector, index, self) => 
     index === self.findIndex((c) => c.name === connector.name)
   );
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Backdrop */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -77,13 +87,11 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
         className="absolute inset-0 bg-black/80 backdrop-blur-md"
       />
 
-      {/* Modal Container */}
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         className="relative bg-[#0B0C10] border border-[#45A29E] rounded-lg w-full max-w-2xl flex min-h-[460px] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]"
       >
-        {/* Close Button */}
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 text-[#45A29E] hover:text-[#66FCF1] transition-colors z-10"
@@ -91,7 +99,6 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
           <X size={24} />
         </button>
 
-        {/* Left Pane: Wallet List */}
         <div className="w-1/3 border-r border-[#45A29E]/30 p-6 flex flex-col gap-4">
           <h3 className="text-[#66FCF1] font-mono text-xs uppercase tracking-[0.2em] mb-4">Select Provider</h3>
           <div className="flex flex-col gap-2">
@@ -121,7 +128,6 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Right Pane: Action Area */}
         <div className="flex-1 p-10 flex flex-col items-center justify-center text-center relative bg-[#0B0C10]">
           <AnimatePresence mode="wait">
             {uiState === UI_STATES.DEFAULT && (
@@ -205,7 +211,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
               </motion.div>
             )}
 
-            {uiState === UI_STATES.ERROR && (
+            {(uiState === UI_STATES.ERROR || connectError) && (
               <motion.div 
                 key="error"
                 initial={{ opacity: 0 }}
