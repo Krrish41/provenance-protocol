@@ -54,18 +54,34 @@ const Explore = () => {
           const tokenUri = await contract.tokenURI(i.tokenId);
           if (!tokenUri) return null;
 
-          // Normalize and optimize URI
           const optimizedUri = tokenUri.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com');
-          const meta = await axios.get(optimizedUri, { timeout: 8000 }); // 8s timeout
+          
+          let meta;
+          try {
+            const res = await axios.get(optimizedUri, { timeout: 5000 });
+            meta = res.data;
+          } catch (e) {
+            console.warn(`Metadata pending for token ${tokenId}`);
+            // Return placeholder for items with pending metadata
+            return {
+              tokenId,
+              image: '', 
+              name: `Asset #${tokenId}`,
+              description: "Metadata is currently propagating through the protocol. Please check back in a moment.",
+              price: formatEther(i.price.toString()),
+              seller: i.seller.toLowerCase(),
+              owner: i.owner.toLowerCase(),
+              isPending: true
+            };
+          }
           
           const itemData = {
             tokenId,
-            image: meta.data.image ? meta.data.image.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com') : '',
-            name: meta.data.name || "Unnamed Asset",
-            description: meta.data.description || "No description provided.",
+            image: meta.image ? meta.image.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com') : '',
+            name: meta.name || `Asset #${tokenId}`,
+            description: meta.description || "No description provided.",
           };
 
-          // Store in cache with safety wrapper
           try {
             cache[tokenId] = itemData;
             sessionStorage.setItem(cacheKey, JSON.stringify(cache));
@@ -78,7 +94,7 @@ const Explore = () => {
             owner: i.owner.toLowerCase(),
           };
         } catch (e) {
-          console.error(`Error fetching metadata for token ${tokenId}:`, e);
+          console.error(`Error processing token ${tokenId}:`, e);
           return null;
         }
       }));
