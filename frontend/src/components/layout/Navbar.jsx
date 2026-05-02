@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAccount, useDisconnect } from 'wagmi';
-import { Boxes, Menu, X, LogOut, ChevronDown } from 'lucide-react';
+import { Boxes, Menu, X, LogOut } from 'lucide-react';
 import ProvenanceWalletModal from '../ui/ProvenanceWalletModal';
+import { useWalletModal } from '../../context/WalletModalContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const { isWalletModalOpen, openWalletModal, closeWalletModal } = useWalletModal();
   const location = useLocation();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
@@ -62,8 +63,8 @@ const Navbar = () => {
                 </div>
               ) : (
                 <button 
-                  onClick={() => setIsWalletModalOpen(true)} 
-                  className="px-6 py-2 border border-[#66FCF1] bg-[#0B0C10] text-[#66FCF1] font-mono text-sm tracking-wide rounded hover:bg-[#66FCF1] hover:text-[#0B0C10] hover:shadow-[0_0_15px_rgba(102,252,241,0.5)] transition-all duration-300"
+                  onClick={openWalletModal} 
+                  className="provenance-btn"
                 >
                   Connect Wallet
                 </button>
@@ -112,8 +113,8 @@ const Navbar = () => {
                 </button>
               ) : (
                 <button 
-                  onClick={() => { setIsWalletModalOpen(true); closeMenu(); }} 
-                  className="w-full px-6 py-4 border border-[#66FCF1] bg-[#0B0C10] text-[#66FCF1] font-mono text-lg tracking-wide rounded hover:bg-[#66FCF1] hover:text-[#0B0C10] transition-all duration-300"
+                  onClick={() => { openWalletModal(); closeMenu(); }} 
+                  className="provenance-btn w-full py-4 text-lg"
                 >
                   Connect Wallet
                 </button>
@@ -126,7 +127,7 @@ const Navbar = () => {
       {/* Custom Wallet Modal */}
       <ProvenanceWalletModal 
         isOpen={isWalletModalOpen} 
-        onClose={() => setIsWalletModalOpen(false)} 
+        onClose={closeWalletModal} 
       />
     </>
   );

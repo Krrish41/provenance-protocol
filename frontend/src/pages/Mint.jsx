@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { BrowserProvider, Contract, parseEther } from 'ethers';
-import { UploadCloud, Loader2 } from 'lucide-react';
+import { UploadCloud, Loader2, ShieldAlert } from 'lucide-react';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import { uploadFileToIPFS, uploadJSONToIPFS } from '../utils/pinata';
 import toast from 'react-hot-toast';
 import { useAccount } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useWalletModal } from '../context/WalletModalContext';
 
 const Mint = () => {
   const { isConnected } = useAccount();
+  const { openWalletModal } = useWalletModal();
   const [formInput, setFormInput] = useState({ price: '', name: '', description: '' });
   const [fileUrl, setFileUrl] = useState(null);
   const [file, setFile] = useState(null);
@@ -33,17 +34,11 @@ const Mint = () => {
     setUploading(true);
     setStatus('Uploading image to IPFS...');
     try {
-      // 1. Upload image
       const imageURL = await uploadFileToIPFS(file);
-      
-      // 2. Upload metadata
       setStatus('Uploading metadata to IPFS...');
-      const metadata = {
-        name, description, image: imageURL
-      };
+      const metadata = { name, description, image: imageURL };
       const tokenURI = await uploadJSONToIPFS(metadata);
 
-      // 3. Interact with contract
       setStatus('Please approve transaction in Wallet...');
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
@@ -80,40 +75,25 @@ const Mint = () => {
           className="bg-[#1e2024]/80 border border-[#45A29E]/30 backdrop-blur-md rounded-2xl p-10 max-w-xl w-full text-center shadow-[0_0_40px_rgba(69,162,158,0.1)]"
         >
           <div className="w-20 h-20 mx-auto bg-[#45A29E]/10 rounded-full flex items-center justify-center mb-8 border border-[#45A29E]/30">
-            <svg className="w-10 h-10 text-[#66FCF1]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
+            <ShieldAlert className="w-10 h-10 text-[#66FCF1]" />
           </div>
           
-          <h2 className="text-3xl font-bold text-white uppercase tracking-tight mb-4">
-            Authentication Required
+          <h2 className="text-3xl font-bold text-white uppercase tracking-tight mb-4 font-mono">
+            Auth Required
           </h2>
           
           <p className="text-[#C5C6C7] mb-10 text-lg leading-relaxed">
-            Please connect your wallet to mint and list new assets.
+            Please connect your wallet to access the Provenance Minting Terminal.
           </p>
           
           <div className="flex justify-center">
-            <ConnectButton.Custom>
-              {({ openConnectModal, mounted }) => {
-                return (
-                  <button
-                    onClick={async () => {
-                      try {
-                        if (openConnectModal) openConnectModal();
-                      } catch (err) {
-                        console.error('Wallet connection aborted:', err);
-                      }
-                    }}
-                    type="button"
-                    className="btn-primary px-10 py-4 rounded-lg text-lg interactive shadow-[0_0_15px_rgba(102,252,241,0.1)]"
-                    disabled={!mounted}
-                  >
-                    Connect Wallet
-                  </button>
-                );
-              }}
-            </ConnectButton.Custom>
+            <button
+              onClick={openWalletModal}
+              type="button"
+              className="provenance-btn px-10 py-4 text-lg shadow-[0_0_25px_rgba(102,252,241,0.2)]"
+            >
+              Connect Wallet
+            </button>
           </div>
         </motion.div>
       </div>
@@ -190,7 +170,7 @@ const Mint = () => {
             whileTap={{ scale: 0.98 }}
             onClick={createMarketItem}
             disabled={uploading}
-            className="w-full py-4 rounded-lg btn-primary interactive"
+            className="provenance-btn w-full !py-4"
           >
             {uploading ? 'Processing...' : 'Mint & List Asset'}
           </motion.button>

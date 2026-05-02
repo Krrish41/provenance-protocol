@@ -9,6 +9,7 @@ import { injected } from 'wagmi/connectors';
 
 import App from './App.jsx';
 import ErrorBoundary from './components/ui/ErrorBoundary';
+import { WalletModalProvider } from './context/WalletModalContext';
 
 export const scaiMainnet = defineChain({
   id: 34,
@@ -42,9 +43,11 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
+        <WalletModalProvider>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </WalletModalProvider>
       </QueryClientProvider>
     </WagmiProvider>
   </StrictMode>,

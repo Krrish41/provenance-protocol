@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
 import { useAccount } from 'wagmi';
-import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { Boxes } from 'lucide-react';
+import { useWalletModal } from '../../context/WalletModalContext';
 
 const NFTCard = ({ item, onAction, onClick }) => {
   const { address, isConnected } = useAccount();
-  const { openConnectModal } = useConnectModal();
+  const { openWalletModal } = useWalletModal();
 
   const isUserOwner = isConnected && address && (
     (item.seller && item.seller.toLowerCase() === address.toLowerCase()) || 
@@ -13,7 +13,7 @@ const NFTCard = ({ item, onAction, onClick }) => {
   );
 
   const getButtonState = () => {
-    if (!isConnected) return { text: 'Connect Wallet', action: openConnectModal, disabled: false };
+    if (!isConnected) return { text: 'Connect Wallet', action: openWalletModal, disabled: false };
     if (isUserOwner) return { text: 'Owned by You', action: () => {}, disabled: true };
     return { text: 'Buy Asset', action: () => onAction(item), disabled: false };
   };
@@ -70,7 +70,7 @@ const NFTCard = ({ item, onAction, onClick }) => {
           <button 
             onClick={handleAction}
             disabled={button.disabled || item.isPending}
-            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full btn-primary text-[10px] md:text-sm interactive whitespace-nowrap ${
+            className={`provenance-btn !py-1.5 !px-3 !text-[10px] md:!text-sm whitespace-nowrap ${
               (button.disabled || item.isPending) ? 'opacity-50' : ''
             }`}
           >
@@ -83,4 +83,3 @@ const NFTCard = ({ item, onAction, onClick }) => {
 };
 
 export default NFTCard;
-

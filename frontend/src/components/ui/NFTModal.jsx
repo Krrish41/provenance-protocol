@@ -1,11 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShieldCheck, Cpu, Database, Wallet } from 'lucide-react';
 import { useAccount } from 'wagmi';
-import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { useWalletModal } from '../../context/WalletModalContext';
 
 const NFTModal = ({ nft, isOpen, onClose, onAction }) => {
   const { address, isConnected } = useAccount();
-  const { openConnectModal } = useConnectModal();
+  const { openWalletModal } = useWalletModal();
 
   if (!isOpen) return null;
 
@@ -15,7 +15,7 @@ const NFTModal = ({ nft, isOpen, onClose, onAction }) => {
   );
 
   const getButtonState = () => {
-    if (!isConnected) return { text: 'Connect Wallet', action: openConnectModal, disabled: false };
+    if (!isConnected) return { text: 'Connect Wallet', action: openWalletModal, disabled: false };
     if (isUserOwner) return { text: 'Owned by You', action: () => {}, disabled: true };
     return { text: 'Buy Asset', action: () => onAction(nft), disabled: false };
   };
@@ -108,17 +108,15 @@ const NFTModal = ({ nft, isOpen, onClose, onAction }) => {
                 <button 
                   onClick={button.action}
                   disabled={button.disabled || nft.isPending}
-                  className={`w-full py-3.5 md:py-4 rounded-xl font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 md:gap-3 text-xs md:text-sm ${
-                    (button.disabled || nft.isPending)
-                      ? 'bg-[#45A29E]/10 border border-[#45A29E]/30 text-[#45A29E] cursor-not-allowed' 
-                      : 'bg-[#66FCF1] text-[#0B0C10] hover:shadow-[0_0_30px_rgba(102,252,241,0.4)] active:scale-[0.98]'
+                  className={`provenance-btn w-full !py-3.5 md:!py-4 !text-xs md:!text-sm ${
+                    (button.disabled || nft.isPending) ? 'opacity-50' : ''
                   }`}
                 >
                   {nft.isPending ? (
                     <>Syncing Protocol...</>
                   ) : (
                     <>
-                      <Wallet size={16} className="md:w-[18px]" />
+                      <Wallet size={16} className="md:w-[18px] mr-2" />
                       {button.text}
                     </>
                   )}
