@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { BrowserProvider, JsonRpcProvider, Contract, formatEther, parseEther } from 'ethers';
 import axios from 'axios';
@@ -8,25 +8,23 @@ import NFTModal from '../components/ui/NFTModal';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import toast from 'react-hot-toast';
 import { resolveIPFS } from '../utils/ipfs';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+// Instantiate provider and contract outside the component lifecycle for immediate readiness
+const rpcUrl = import.meta.env.VITE_SCAI_RPC_URL || "https://34.rpc.thirdweb.com";
+const rpcProvider = new JsonRpcProvider(rpcUrl);
+const marketplaceContract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, rpcProvider);
 
 const Explore = () => {
-  const [nfts, setNfts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedNft, setSelectedNft] = useState(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    loadNFTs();
-  }, []);
+  const { data: nfts = [], isLoading: loading } = useQuery({
+    queryKey: ['marketItems'],
+    queryFn: async () => {
+      const data = await marketplaceContract.fetchMarketItems();
 
-  async function loadNFTs() {
-    try {
-      const rpcUrl = import.meta.env.VITE_SCAI_RPC_URL || "https://34.rpc.thirdweb.com";
-      const provider = new JsonRpcProvider(rpcUrl);
-
-      const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, provider);
-      const data = await contract.fetchMarketItems();
-
-      const cacheKey = 'provenance_market_metadata_v4';
+      const cacheKey = 'provenance_market_metadata_v5';
       let cache = {};
       try {
         const savedCache = sessionStorage.getItem(cacheKey);
@@ -46,7 +44,7 @@ const Explore = () => {
         }
 
         try {
-          const tokenUri = await contract.tokenURI(i.tokenId);
+          const tokenUri = await marketplaceContract.tokenURI(i.tokenId);
           if (!tokenUri) return null;
 
           const gateways = [
@@ -104,13 +102,10 @@ const Explore = () => {
         }
       }));
 
-      setNfts(items.filter(item => item !== null));
-      setLoading(false);
-    } catch (error) {
-      console.error("Error loading NFTs:", error);
-      setLoading(false);
-    }
-  }
+      return items.filter(item => item !== null);
+    },
+    staleTime: 60 * 1000, // Cache for 1 minute
+  });
 
   async function buyNft(nft) {
     try {
@@ -131,11 +126,11 @@ const Explore = () => {
       await transaction.wait();
       toast.dismiss(loadingToast);
       toast.success("Purchase successful!");
-      loadNFTs();
+      queryClient.invalidateQueries({ queryKey: ['marketItems'] });
       if (selectedNft) setSelectedNft(null);
     } catch (error) {
       console.error("Error buying NFT:", error);
-      toast.error("Transaction failed.");
+      toast.error("Transaction failed or rejected.");
     }
   }
 
