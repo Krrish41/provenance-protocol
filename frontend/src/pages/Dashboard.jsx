@@ -136,9 +136,9 @@ const Dashboard = () => {
       className="py-8 space-y-12"
     >
       <section>
-        <div className="flex justify-between items-center mb-8 border-b border-[#45A29E]/30 pb-4">
-          <h2 className="text-3xl font-bold text-white uppercase tracking-tight">Active Listings</h2>
-          <span className="text-[#66FCF1] font-mono text-sm">{listedNfts.length} Assets on Market</span>
+        <div className="flex justify-between items-center mb-10 border-b border-[#45A29E]/30 pb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-white uppercase tracking-wide">Active Listings</h2>
+          <span className="text-[#66FCF1] font-mono text-xs md:text-sm">{listedNfts.length} Assets on Market</span>
         </div>
         
         {loading ? (
@@ -157,9 +157,9 @@ const Dashboard = () => {
       </section>
 
       <section>
-        <div className="flex justify-between items-center mb-8 border-b border-[#45A29E]/30 pb-4">
-          <h2 className="text-3xl font-bold text-white uppercase tracking-tight">Personal Holdings</h2>
-          <span className="text-[#45A29E] font-mono text-sm">{ownedNfts.length} Assets Held</span>
+        <div className="flex justify-between items-center mb-10 border-b border-[#45A29E]/30 pb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-white uppercase tracking-wide">Personal Holdings</h2>
+          <span className="text-[#45A29E] font-mono text-xs md:text-sm">{ownedNfts.length} Assets Held</span>
         </div>
         
         {loading ? (
