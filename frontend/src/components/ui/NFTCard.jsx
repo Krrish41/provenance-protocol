@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { Boxes } from 'lucide-react';
 
 const NFTCard = ({ item, onAction, onClick }) => {
   const { address, isConnected } = useAccount();
@@ -38,7 +39,14 @@ const NFTCard = ({ item, onAction, onClick }) => {
         {item.isPending ? (
           <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-[#1e2024]">
             <div className="w-12 h-12 border-2 border-[#66FCF1]/30 border-t-[#66FCF1] rounded-full animate-spin mb-4" />
-            <p className="text-xs text-[#45A29E] uppercase tracking-tighter">Synchronizing with IPFS...</p>
+            <p className="text-xs text-[#45A29E] uppercase tracking-tighter">Synchronizing...</p>
+          </div>
+        ) : item.isFailed ? (
+          <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-[#1e2024]/50 border-b border-[#45A29E]/10">
+            <div className="w-12 h-12 bg-[#45A29E]/10 rounded-full flex items-center justify-center mb-4 border border-[#45A29E]/20">
+              <Boxes className="w-6 h-6 text-[#45A29E]" />
+            </div>
+            <p className="text-[10px] text-[#45A29E] uppercase tracking-widest leading-relaxed">Media Synchronization<br/>Pending Verification</p>
           </div>
         ) : (
           <img 
@@ -50,7 +58,7 @@ const NFTCard = ({ item, onAction, onClick }) => {
       </div>
       <div className="p-5 flex flex-col flex-grow">
         <h3 className="text-xl font-bold text-white mb-2">{item.name}</h3>
-        <p className={`text-[#C5C6C7] text-sm mb-4 line-clamp-2 flex-grow ${item.isPending ? 'italic opacity-60' : ''}`}>
+        <p className={`text-[#C5C6C7] text-sm mb-4 line-clamp-2 flex-grow ${item.isPending || item.isFailed ? 'italic opacity-60' : ''}`}>
           {item.description}
         </p>
         

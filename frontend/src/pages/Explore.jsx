@@ -7,7 +7,7 @@ import NFTCard from '../components/ui/NFTCard';
 import NFTModal from '../components/ui/NFTModal';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import toast from 'react-hot-toast';
-import { resolveIPFS } from '../utils/ipfs';
+import { resolveIPFS, getAllIPFSGateways } from '../utils/ipfs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // Instantiate provider and contract outside the component lifecycle for immediate readiness
@@ -47,33 +47,35 @@ const Explore = () => {
           const tokenUri = await marketplaceContract.tokenURI(i.tokenId);
           if (!tokenUri) return null;
 
-          const gateways = [
-            resolveIPFS(tokenUri),
-            tokenUri.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/'),
-            tokenUri.replace('ipfs://', 'https://ipfs.io/ipfs/')
-          ];
+          const gateways = getAllIPFSGateways(tokenUri);
           
           let meta = null;
           try {
-            const fetchPromise = (url) => axios.get(url, { timeout: 4000 }).then(res => {
+            const fetchPromise = (url) => axios.get(url, { timeout: 5000 }).then(res => {
               if (res.data && (res.data.image || res.data.name)) return res.data;
               throw new Error("Invalid IPFS data");
             });
-            meta = await Promise.any(gateways.map(fetchPromise));
+            // Race multiple gateways for the fastest metadata response
+            meta = await Promise.any(gateways.slice(0, 3).map(fetchPromise));
           } catch (e) {
-            // All gateways failed, meta remains null
+            // Try remaining gateways if the first 3 failed
+            try {
+              meta = await Promise.any(gateways.slice(3).map(fetchPromise));
+            } catch (err) {
+              console.warn("Metadata sync failed for", tokenId);
+            }
           }
 
           if (!meta) {
             return {
               tokenId,
               image: '', 
-              name: `Asset #${tokenId} // Syncing`,
-              description: "The protocol is currently synchronizing this asset's metadata.",
+              name: `Asset #${tokenId}`,
+              description: "Metadata synchronization failed. Protocol verification pending.",
               price: formatEther(i.price.toString()),
               seller: i.seller.toLowerCase(),
               owner: i.owner.toLowerCase(),
-              isPending: true
+              isFailed: true
             };
           }
           

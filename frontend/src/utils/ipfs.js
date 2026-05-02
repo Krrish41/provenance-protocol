@@ -1,20 +1,38 @@
 const gateways = [
   'https://gateway.pinata.cloud/ipfs/',
   'https://ipfs.io/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/'
+  'https://cloudflare-ipfs.com/ipfs/',
+  'https://dweb.link/ipfs/',
+  'https://nftstorage.link/ipfs/'
 ];
 
 /**
  * Resolves IPFS URIs into reliable HTTP gateway URLs.
+ * Returns a single URL (primary) or can be used to get all fallbacks.
  */
 export const resolveIPFS = (url) => {
   if (!url || typeof url !== 'string') return '';
-  if (url.startsWith('ipfs://')) {
-    const path = url.replace('ipfs://', '');
-    return `${gateways[0]}${path}`; // Use primary, then can iterate through gateways for fallback
+  
+  // Clean the CID/Path
+  const path = url.replace(/^ipfs:\/\//, '').replace(/^\/ipfs\//, '');
+  
+  // If it's already an HTTP URL but contains /ipfs/, we might want to swap gateways
+  if (url.startsWith('http') && url.includes('/ipfs/')) {
+    const httpPath = url.split('/ipfs/')[1];
+    return `${gateways[0]}${httpPath}`;
   }
-  return url; // Assume standard HTTP/HTTPS otherwise
+
+  if (url.startsWith('Qm') || url.startsWith('ba') || url.includes('ipfs')) {
+    return `${gateways[0]}${path}`;
+  }
+  
+  return url;
 };
 
-// For backward compatibility if any file still uses getIPFSUrl
+export const getAllIPFSGateways = (url) => {
+  if (!url || typeof url !== 'string') return [];
+  const path = url.replace(/^ipfs:\/\//, '').replace(/^\/ipfs\//, '');
+  return gateways.map(g => `${g}${path}`);
+};
+
 export const getIPFSUrl = resolveIPFS;

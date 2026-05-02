@@ -12,7 +12,7 @@ const CursorTrail = () => {
   const cursorY = useSpring(0, springConfig);
 
   useEffect(() => {
-    setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches);
+    setIsTouchDevice(!window.matchMedia('(pointer: fine)').matches);
     
     const updateMousePosition = (e) => {
       setMousePosition({ x: e.clientX, y: e.clientY });

@@ -32,9 +32,10 @@ body {
 /* Wallet Item Hover Effect */
 [data-rk] button[type="button"]:not(.btn-primary):hover {
   transform: translateX(8px) !important;
-  background: rgba(102, 252, 241, 0.05) !important;
+  background: rgba(102, 252, 241, 0.15) !important;
   border: 1px solid #66FCF1 !important;
-  box-shadow: 0 0 20px rgba(102, 252, 241, 0.1) !important;
+  color: #66FCF1 !important;
+  box-shadow: 0 0 20px rgba(102, 252, 241, 0.2) !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
@@ -65,8 +66,8 @@ body {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #66FCF1;
-  color: #0B0C10;
+  background-color: #66FCF1 !important;
+  color: #0B0C10 !important;
   box-shadow: 0 0 20px rgba(102, 252, 241, 0.4);
 }
 

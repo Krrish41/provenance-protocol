@@ -125,10 +125,9 @@ const NFTModal = ({ nft, isOpen, onClose, onAction }) => {
                 </button>
               </div>
             </div>
-          </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+          </motion.div>
+        </div>
+      </AnimatePresence>
   );
 };
 
