@@ -13,7 +13,7 @@ import { useWalletModal } from '../context/WalletModalContext';
 import { ShieldAlert } from 'lucide-react';
 
 const Dashboard = () => {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { openWalletModal } = useWalletModal();
   const [ownedNfts, setOwnedNfts] = useState([]);
   const [listedNfts, setListedNfts] = useState([]);
@@ -21,10 +21,10 @@ const Dashboard = () => {
   const [selectedNft, setSelectedNft] = useState(null);
 
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected && address) {
       loadNFTs();
     }
-  }, [isConnected]);
+  }, [isConnected, address]);
 
   async function loadNFTs() {
     try {
@@ -32,35 +32,54 @@ const Dashboard = () => {
           setLoading(false);
           return;
       }
+      setLoading(true);
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
       
       const [ownedData, listedData] = await Promise.all([
-        contract.fetchMyNFTs(),
-        contract.fetchItemsListed()
+        contract.fetchMyNFTs().catch(e => { console.error("fetchMyNFTs failed", e); return []; }),
+        contract.fetchItemsListed().catch(e => { console.error("fetchItemsListed failed", e); return []; })
       ]);
 
       const processData = async (data) => {
-        return await Promise.all(data.map(async i => {
-          const tokenUri = await contract.tokenURI(i.tokenId);
-          let meta = { data: { name: `Asset #${i.tokenId}`, description: '', image: '' } };
+        const items = await Promise.all(data.map(async i => {
           try {
-            const url = resolveIPFS(tokenUri);
-            meta = await axios.get(url, { timeout: 5000 });
-          } catch (e) {
-            console.warn("Metadata pending for", i.tokenId);
+            const tokenId = Number(i.tokenId);
+            let tokenUri = "";
+            try {
+              tokenUri = await contract.tokenURI(i.tokenId);
+            } catch (e) {
+              console.warn("Could not fetch tokenURI for", tokenId);
+            }
+
+            let meta = { data: { name: `Network Asset #${tokenId}`, description: 'Metadata pending protocol verification.', image: '' } };
+            
+            if (tokenUri) {
+              try {
+                const url = resolveIPFS(tokenUri);
+                const res = await axios.get(url, { timeout: 8000 });
+                if (res.data) meta = res;
+              } catch (e) {
+                console.warn("Metadata timeout for", tokenId);
+              }
+            }
+
+            return {
+              price: formatEther(i.price.toString()),
+              tokenId: tokenId,
+              seller: i.seller.toLowerCase(),
+              owner: i.owner.toLowerCase(),
+              image: resolveIPFS(meta.data.image || meta.data.imageURL || ""),
+              name: meta.data.name || `Network Asset #${tokenId}`,
+              description: meta.data.description || 'Provenance synchronization in progress...',
+            };
+          } catch (err) {
+            console.error("Error processing item", i.tokenId, err);
+            return null; // Skip this item instead of crashing everything
           }
-          return {
-            price: formatEther(i.price.toString()),
-            tokenId: Number(i.tokenId),
-            seller: i.seller.toLowerCase(),
-            owner: i.owner.toLowerCase(),
-            image: resolveIPFS(meta.data.image),
-            name: meta.data.name || `Asset #${i.tokenId}`,
-            description: meta.data.description,
-          };
         }));
+        return items.filter(item => item !== null);
       };
 
       const [owned, listed] = await Promise.all([
@@ -70,9 +89,10 @@ const Dashboard = () => {
 
       setOwnedNfts(owned);
       setListedNfts(listed);
-      setLoading(false);
     } catch (error) {
-      console.error("Error loading Dashboard NFTs:", error);
+      console.error("Critical error loading Dashboard:", error);
+      toast.error("Failed to sync dashboard data.");
+    } finally {
       setLoading(false);
     }
   }

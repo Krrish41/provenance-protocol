@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount, useDisconnect, useBalance } from 'wagmi';
-import { Boxes, Menu, X, LogOut } from 'lucide-react';
+import { Boxes, Menu, X, LogOut, Wallet } from 'lucide-react';
 import ProvenanceWalletModal from '../ui/ProvenanceWalletModal';
 import { useWalletModal } from '../../context/WalletModalContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showFullBalance, setShowFullBalance] = useState(false);
   const { isWalletModalOpen, openWalletModal, closeWalletModal } = useWalletModal();
   const location = useLocation();
   const { address, isConnected } = useAccount();
@@ -58,16 +59,44 @@ const Navbar = () => {
             <div className="hidden md:block">
               {isConnected ? (
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-0.5">
-                    <div className="bg-[#1e2024] border border-[#45A29E]/30 border-r-0 px-4 py-2 rounded-l flex items-center gap-2 group cursor-default">
-                      <div className="w-2 h-2 rounded-full bg-[#66FCF1] animate-pulse" />
-                      <span className="text-[#66FCF1] font-mono text-sm">{formatAddress(address)}</span>
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowFullBalance(!showFullBalance)}
+                    className="flex items-center gap-0.5 group relative overflow-hidden"
+                  >
+                    <div className="bg-[#1e2024] border border-[#45A29E]/30 border-r-0 px-4 py-2 rounded-l flex items-center gap-2 min-w-[140px] transition-colors group-hover:border-[#66FCF1]/50">
+                      <AnimatePresence mode="wait">
+                        {!showFullBalance ? (
+                          <motion.div 
+                            key="addr"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 10 }}
+                            className="flex items-center gap-2"
+                          >
+                            <div className="w-2 h-2 rounded-full bg-[#66FCF1] animate-pulse" />
+                            <span className="text-[#66FCF1] font-mono text-sm">{formatAddress(address)}</span>
+                          </motion.div>
+                        ) : (
+                          <motion.div 
+                            key="msg"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 10 }}
+                            className="flex items-center gap-2"
+                          >
+                            <Wallet size={14} className="text-[#66FCF1]" />
+                            <span className="text-[#66FCF1] font-mono text-[10px] uppercase tracking-tighter">SCAI Available</span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    <div className="bg-[#1e2024]/50 border border-[#45A29E]/30 px-4 py-2 rounded-r flex items-center gap-1.5 cursor-default">
+                    <div className="bg-[#1e2024]/50 border border-[#45A29E]/30 px-4 py-2 rounded-r flex items-center gap-1.5 cursor-default group-hover:border-[#66FCF1]/50 transition-colors">
                       <span className="text-white font-mono text-sm font-bold">{formatBalance(balance)}</span>
-                      <span className="text-[#45A29E] font-mono text-[10px] uppercase">SCAI</span>
+                      <span className="text-[#45A29E] font-mono text-[10px] uppercase group-hover:text-[#66FCF1] transition-colors">SCAI</span>
                     </div>
-                  </div>
+                  </motion.button>
                   <button 
                     onClick={() => disconnect()}
                     className="p-2 text-[#45A29E] hover:text-red-400 transition-colors"
@@ -98,54 +127,57 @@ const Navbar = () => {
         </div>
 
         {/* Mobile Menu Overlay */}
-        {isMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="md:hidden absolute top-20 left-0 w-full bg-[#0B0C10] border-b border-[#45A29E]/30 py-6 px-4 flex flex-col gap-4 z-40 backdrop-blur-xl shadow-2xl"
-          >
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                onClick={closeMenu}
-                className={`text-lg uppercase tracking-widest font-bold py-1 ${
-                  location.pathname === link.path ? 'text-[#66FCF1]' : 'text-[#C5C6C7]'
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
-            
-            <div className="pt-4 border-t border-[#45A29E]/10">
-              {isConnected ? (
-                <div className="flex flex-col gap-3">
-                  <div className="bg-[#1e2024] border border-[#45A29E]/30 p-4 rounded flex flex-col gap-2 items-center">
-                    <span className="text-[#66FCF1] font-mono text-sm">{formatAddress(address)}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-mono text-xl font-bold">{formatBalance(balance)}</span>
-                      <span className="text-[#45A29E] font-mono text-xs uppercase tracking-widest">SCAI</span>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => { disconnect(); closeMenu(); }}
-                    className="w-full bg-[#1e2024] border border-red-500/50 text-red-400 py-4 rounded text-base font-mono font-bold flex items-center justify-center gap-2"
-                  >
-                    <LogOut size={20} />
-                    Disconnect
-                  </button>
-                </div>
-              ) : (
-                <button 
-                  onClick={() => { openWalletModal(); closeMenu(); }} 
-                  className="provenance-btn w-full py-4 text-lg"
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden absolute top-20 left-0 w-full bg-[#0B0C10] border-b border-[#45A29E]/30 py-6 px-4 flex flex-col gap-4 z-40 backdrop-blur-xl shadow-2xl overflow-hidden"
+            >
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={closeMenu}
+                  className={`text-lg uppercase tracking-widest font-bold py-1 ${
+                    location.pathname === link.path ? 'text-[#66FCF1]' : 'text-[#C5C6C7]'
+                  }`}
                 >
-                  Connect Wallet
-                </button>
-              )}
-            </div>
-          </motion.div>
-        )}
+                  {link.name}
+                </Link>
+              ))}
+              
+              <div className="pt-4 border-t border-[#45A29E]/10">
+                {isConnected ? (
+                  <div className="flex flex-col gap-3">
+                    <div className="bg-[#1e2024] border border-[#45A29E]/30 p-4 rounded flex flex-col gap-2 items-center">
+                      <span className="text-[#66FCF1] font-mono text-sm">{formatAddress(address)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-mono text-xl font-bold">{formatBalance(balance)}</span>
+                        <span className="text-[#45A29E] font-mono text-xs uppercase tracking-widest">SCAI Available</span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => { disconnect(); closeMenu(); }}
+                      className="w-full bg-[#1e2024] border border-red-500/50 text-red-400 py-4 rounded text-base font-mono font-bold flex items-center justify-center gap-2"
+                    >
+                      <LogOut size={20} />
+                      Disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => { openWalletModal(); closeMenu(); }} 
+                    className="provenance-btn w-full py-4 text-lg"
+                  >
+                    Connect Wallet
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
       {/* Custom Wallet Modal */}
