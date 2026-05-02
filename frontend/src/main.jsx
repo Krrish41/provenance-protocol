@@ -30,13 +30,22 @@ import { metaMaskWallet, rainbowWallet } from '@rainbow-me/rainbowkit/wallets';
 
 const projectId = '8952458467431e676a161864115f5d81';
 
-// Custom wallet wrappers to provide clean metadata
+// Custom wallet wrappers with highly thematic installation prompts
 const customMetaMask = () => {
   const wallet = metaMaskWallet({ projectId });
   return {
     ...wallet,
     downloadUrls: {
       browserExtension: 'https://metamask.io/download/',
+    },
+    instructions: {
+      steps: [
+        {
+          description: 'To interact with the Provenance Protocol, you must install the official browser extension.',
+          step: 'install',
+          title: 'MetaMask Not Detected',
+        },
+      ],
     },
     qrCode: undefined,
   };
@@ -48,6 +57,15 @@ const customRainbow = () => {
     ...wallet,
     downloadUrls: {
       browserExtension: 'https://rainbow.me/download',
+    },
+    instructions: {
+      steps: [
+        {
+          description: 'To interact with the Provenance Protocol, you must install the official browser extension.',
+          step: 'install',
+          title: 'Rainbow Not Detected',
+        },
+      ],
     },
     qrCode: undefined,
   };

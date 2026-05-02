@@ -19,7 +19,7 @@ body {
   cursor: pointer;
 }
 
-/* Global Typography: No bold unless explicitly requested */
+/* Global Typography: Strict theme enforcement */
 [data-rk] * {
   font-weight: 400 !important;
 }
@@ -28,9 +28,9 @@ body {
   font-weight: 700 !important;
 }
 
-/* RainbowKit Custom Theme Overrides (Safe Mode) */
+/* RainbowKit Custom Theme Overrides */
 [data-rk] {
-  --rk-colors-modalBackground: rgba(11, 12, 16, 0.98) !important;
+  --rk-colors-modalBackground: #0B0C10 !important;
   --rk-colors-modalBorder: #45A29E !important;
   --rk-colors-modalText: #C5C6C7 !important;
   --rk-colors-modalTextSecondary: #45A29E !important;
@@ -38,38 +38,111 @@ body {
   --rk-radii-modal: 4px !important;
 }
 
-/* Wallet Item Hover Effect */
-[data-rk] button[type="button"]:not(.btn-primary):hover {
-  transform: translateX(8px) !important;
-  background: rgba(102, 252, 241, 0.15) !important;
-  border: 1px solid #66FCF1 !important;
+/* Nuke default light-grey boxes and borders */
+[data-rk] div[style*="background-color: rgb(240, 242, 244)"],
+[data-rk] div[style*="background: rgb(247, 248, 250)"],
+[data-rk] div[style*="background-color: rgb(247, 248, 250)"],
+[data-rk] div[style*="border: 1px solid rgba(0, 0, 0, 0.06)"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Detail View Overhaul (Centered Right Panel) */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div {
+  background: transparent !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 60px 20px !important;
+}
+
+/* Header Styling (Task 2: Silver Smoke #C5C6C7, Bold, text-xl) */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div h2 {
+  color: #C5C6C7 !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  margin-bottom: 8px !important;
+}
+
+/* Subtext Styling (Task 2: Deep Steel #45A29E, standard weight, text-sm) */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div h2 + div {
+  display: block !important;
+  color: #45A29E !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  margin-bottom: 32px !important;
+  max-width: 320px !important;
+  line-height: 1.6 !important;
+}
+
+/* Primary Action Button (Task 2: Cyber-Lime #66FCF1, Obsidian text) */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div a[href*="download"],
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div a[href*="metamask.io"],
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div a[href*="rainbow.me"] {
+  display: flex !important;
+  background: #66FCF1 !important;
+  color: #0B0C10 !important;
+  padding: 16px 40px !important;
+  border-radius: 4px !important;
+  font-weight: 800 !important;
+  font-size: 16px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  text-decoration: none !important;
+  box-shadow: 0 0 25px rgba(102, 252, 241, 0.4) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: fit-content !important;
+  margin: 0 auto !important;
+}
+
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div a:hover {
+  transform: scale(1.05) !important;
+  box-shadow: 0 0 45px rgba(102, 252, 241, 0.7) !important;
+}
+
+/* Secondary Action: Refresh Link (Task 2: Subtle text link) */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div button {
+  display: inline-block !important;
+  background: transparent !important;
+  border: none !important;
+  color: #45A29E !important;
+  font-size: 13px !important;
+  text-decoration: underline !important;
+  margin-top: 24px !important;
+  padding: 4px 8px !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition: color 0.2s !important;
+}
+
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div button:hover {
   color: #66FCF1 !important;
-  box-shadow: 0 0 20px rgba(102, 252, 241, 0.2) !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  background: transparent !important;
 }
 
-/* Close Button Fix */
-[data-rk] button[aria-label="Close"] {
-  border: 1px solid #45A29E !important;
-  opacity: 0.6;
+/* Rename Refresh button content via pseudo-element */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div button span {
+  display: none !important;
 }
 
-[data-rk] button[aria-label="Close"]:hover {
-  border-color: #66FCF1 !important;
-  color: #66FCF1 !important;
-  opacity: 1;
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div button::before {
+  content: "I installed it - Refresh" !important;
 }
 
-/* Wallet Modal Refinements */
-[data-rk] [role="dialog"] {
-  max-width: 90vw !important;
-  margin: auto !important;
-  animation: rk-fade-in 0.2s ease-out !important;
-}
-
-@keyframes rk-fade-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+/* Nuke default icons, logos, and list items */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div img[alt*="Edge"],
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div img[alt*="Chrome"],
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div div:has(img[alt*="MetaMask"]),
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div div:has(img[alt*="Rainbow"]),
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div > div > div:has(svg),
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div > div > div:has(img) {
+  display: none !important;
 }
 
 /* ABSOLUTE REMOVAL OF EDUCATIONAL GARBAGE */
@@ -80,105 +153,23 @@ body {
   display: none !important;
 }
 
-/* HIDE THE DEFAULT INSTRUCTIONS CONTENT IN DETAIL VIEW */
-[data-rk] [role="dialog"] [aria-label="Back"] ~ div img,
-[data-rk] [role="dialog"] [aria-label="Back"] ~ div h2 + div,
-[data-rk] [role="dialog"] [aria-label="Back"] ~ div > div > div:has(img) {
-  display: none !important;
+/* Scale down wallet icons in the main list */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div img[alt*="Wallet"] {
+  width: 48px !important;
+  height: 48px !important;
+  margin-bottom: 24px !important;
+  display: block !important; /* Restore only the main wallet icon in detail view */
 }
 
-/* Hide the 'Refresh' button as we want a clean 'Install' focus */
-[data-rk] [role="dialog"] [aria-label="Back"] ~ div button {
-  display: none !important;
-}
-
-/* REVAMPED 'EXTENSION NOT FOUND' SCREEN */
-[data-rk] [role="dialog"] [aria-label="Back"] ~ div {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  padding: 40px 20px !important;
-}
-
-/* Custom Titles based on context (via selectors) */
-[data-rk] [role="dialog"] [aria-label="Back"] ~ div::before {
-  content: "EXTENSION NOT FOUND";
+/* Re-enable the main wallet icon in the centered view */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div > div:first-child:has(img) {
   display: block !important;
-  font-size: 18px !important;
-  font-weight: 700 !important;
-  color: #FFFFFF !important;
-  margin-bottom: 8px !important;
-  letter-spacing: 0.1em !important;
+  margin-bottom: 24px !important;
 }
 
-[data-rk] [role="dialog"] [aria-label="Back"] ~ div::after {
-  content: "Please install the browser extension to proceed with your connection to Provenance Protocol.";
-  display: block !important;
-  font-size: 13px !important;
-  color: #C5C6C7 !important;
-  margin-bottom: 32px !important;
-  max-width: 280px !important;
-  line-height: 1.5 !important;
-}
-
-/* Scale down wallet icons */
-[data-rk] img[alt*="Wallet"], 
-[data-rk] img[src*="wallet"],
-[data-rk] div[style*="width: 48px"] {
-  width: 32px !important;
-  height: 32px !important;
-}
-
-/* ENSURE INSTALL BUTTONS ARE PROMINENT AND STYLED */
-[data-rk] [role="dialog"] [aria-label="Back"] ~ div a[href*="download"],
-[data-rk] [role="dialog"] [aria-label="Back"] ~ div a[href*="microsoftedge"],
-[data-rk] [role="dialog"] [aria-label="Back"] ~ div a[href*="chrome.google.com"],
-[data-rk] [role="dialog"] [aria-label="Back"] ~ div a[href*="metamask.io"] {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  background: #66FCF1 !important;
-  color: #0B0C10 !important;
-  font-weight: 800 !important;
-  padding: 14px 32px !important;
-  border-radius: 4px !important;
-  font-size: 14px !important;
-  text-decoration: none !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
-  justify-content: center !important;
-  align-items: center !important;
-  width: fit-content !important;
-  margin: 0 auto !important;
-  box-shadow: 0 0 20px rgba(102, 252, 241, 0.5) !important;
-  order: 3 !important; /* Move after the pseudo-elements */
-}
-
-/* MOBILE HIDING REINFORCED */
+/* Hide mobile options */
 [data-rk] img[alt*="Mobile"],
 [data-rk] a[href*="apple.com"],
 [data-rk] a[href*="play.google.com"] {
   display: none !important;
-}
-
-/* Global Primary Button Style */
-.btn-primary {
-  background-color: transparent;
-  border: 1px solid #66FCF1;
-  color: #66FCF1;
-  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: #66FCF1 !important;
-  color: #0B0C10 !important;
-  box-shadow: 0 0 20px rgba(102, 252, 241, 0.4);
 }
