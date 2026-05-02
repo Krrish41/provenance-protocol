@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useAccount, useDisconnect } from 'wagmi';
+import { useAccount, useDisconnect, useBalance } from 'wagmi';
 import { Boxes, Menu, X, LogOut } from 'lucide-react';
 import ProvenanceWalletModal from '../ui/ProvenanceWalletModal';
 import { useWalletModal } from '../../context/WalletModalContext';
@@ -12,6 +12,10 @@ const Navbar = () => {
   const location = useLocation();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  
+  const { data: balance } = useBalance({
+    address: address,
+  });
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
@@ -25,6 +29,11 @@ const Navbar = () => {
 
   const formatAddress = (addr) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  const formatBalance = (bal) => {
+    if (!bal) return '0.00';
+    return parseFloat(bal.formatted).toFixed(2);
   };
 
   return (
@@ -49,9 +58,15 @@ const Navbar = () => {
             <div className="hidden md:block">
               {isConnected ? (
                 <div className="flex items-center gap-3">
-                  <div className="bg-[#1e2024] border border-[#45A29E]/30 px-4 py-2 rounded flex items-center gap-2 group cursor-default">
-                    <div className="w-2 h-2 rounded-full bg-[#66FCF1] animate-pulse" />
-                    <span className="text-[#66FCF1] font-mono text-sm">{formatAddress(address)}</span>
+                  <div className="flex items-center gap-0.5">
+                    <div className="bg-[#1e2024] border border-[#45A29E]/30 border-r-0 px-4 py-2 rounded-l flex items-center gap-2 group cursor-default">
+                      <div className="w-2 h-2 rounded-full bg-[#66FCF1] animate-pulse" />
+                      <span className="text-[#66FCF1] font-mono text-sm">{formatAddress(address)}</span>
+                    </div>
+                    <div className="bg-[#1e2024]/50 border border-[#45A29E]/30 px-4 py-2 rounded-r flex items-center gap-1.5 cursor-default">
+                      <span className="text-white font-mono text-sm font-bold">{formatBalance(balance)}</span>
+                      <span className="text-[#45A29E] font-mono text-[10px] uppercase">SCAI</span>
+                    </div>
                   </div>
                   <button 
                     onClick={() => disconnect()}
@@ -104,13 +119,22 @@ const Navbar = () => {
             
             <div className="pt-4 border-t border-[#45A29E]/10">
               {isConnected ? (
-                <button 
-                  onClick={() => { disconnect(); closeMenu(); }}
-                  className="w-full bg-[#1e2024] border border-red-500/50 text-red-400 py-4 rounded text-base font-mono font-bold flex items-center justify-center gap-2"
-                >
-                  <LogOut size={20} />
-                  Disconnect {formatAddress(address)}
-                </button>
+                <div className="flex flex-col gap-3">
+                  <div className="bg-[#1e2024] border border-[#45A29E]/30 p-4 rounded flex flex-col gap-2 items-center">
+                    <span className="text-[#66FCF1] font-mono text-sm">{formatAddress(address)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-mono text-xl font-bold">{formatBalance(balance)}</span>
+                      <span className="text-[#45A29E] font-mono text-xs uppercase tracking-widest">SCAI</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => { disconnect(); closeMenu(); }}
+                    className="w-full bg-[#1e2024] border border-red-500/50 text-red-400 py-4 rounded text-base font-mono font-bold flex items-center justify-center gap-2"
+                  >
+                    <LogOut size={20} />
+                    Disconnect
+                  </button>
+                </div>
               ) : (
                 <button 
                   onClick={() => { openWalletModal(); closeMenu(); }} 
