@@ -72,15 +72,55 @@ body {
   to { opacity: 1; transform: scale(1); }
 }
 
-/* ABSOLUTE REMOVAL OF LEARN MORE AND WHAT IS A WALLET */
-[data-rk] a[href*="rainbow.me"]:not([href*="download"]),
+/* ABSOLUTE REMOVAL OF EDUCATIONAL GARBAGE */
 [data-rk] a[href*="understanding-wallets"],
 [data-rk] a[href*="what-is-a-wallet"],
 [data-rk] button[aria-label="Learn more about wallets"],
-[data-rk] div:has(> h2):contains("What is a Wallet?"),
-[data-rk] div:has(> h2):contains("What's a Wallet?"),
-[data-rk] [aria-label="Back"] + div > h2:contains("What is a Wallet?") {
+[data-rk] div[style*="font-size: 18px"]:has(+ div + button) {
   display: none !important;
+}
+
+/* HIDE THE DEFAULT INSTRUCTIONS CONTENT IN DETAIL VIEW */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div img,
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div h2 + div,
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div > div > div:has(img) {
+  display: none !important;
+}
+
+/* Hide the 'Refresh' button as we want a clean 'Install' focus */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div button {
+  display: none !important;
+}
+
+/* REVAMPED 'EXTENSION NOT FOUND' SCREEN */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 40px 20px !important;
+}
+
+/* Custom Titles based on context (via selectors) */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div::before {
+  content: "EXTENSION NOT FOUND";
+  display: block !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #FFFFFF !important;
+  margin-bottom: 8px !important;
+  letter-spacing: 0.1em !important;
+}
+
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div::after {
+  content: "Please install the browser extension to proceed with your connection to Provenance Protocol.";
+  display: block !important;
+  font-size: 13px !important;
+  color: #C5C6C7 !important;
+  margin-bottom: 32px !important;
+  max-width: 280px !important;
+  line-height: 1.5 !important;
 }
 
 /* Scale down wallet icons */
@@ -91,67 +131,36 @@ body {
   height: 32px !important;
 }
 
-/* Tighten Explainer Text */
-[data-rk] div[style*="font-size: 18px"],
-[data-rk] h2 {
-  font-size: 16px !important;
-  line-height: 1.2 !important;
-  color: #FFFFFF !important;
-}
-
-[data-rk] div[style*="font-size: 14px"] {
-  font-size: 13px !important;
-  line-height: 1.4 !important;
-  opacity: 0.9 !important;
-  color: #C5C6C7 !important;
-}
-
-/* Side-by-side buttons in 'Get a Wallet' */
-[data-rk] div[style*="display: flex; flex-direction: column"] {
-  flex-direction: row !important;
-  gap: 8px !important;
-  justify-content: center !important;
-  flex-wrap: wrap !important;
-}
-
-/* STRICT MOBILE HIDING */
-[data-rk] [role="dialog"] div:has(> div > h2) > div:nth-child(n+2) {
-  display: none !important;
-}
-
-[data-rk] img[alt*="Mobile"],
-[data-rk] a[href*="apple.com"],
-[data-rk] a[href*="play.google.com"],
-[data-rk] a[href*="itunes.apple.com"],
-[data-rk] a[href*="apps.apple.com"] {
-  display: none !important;
-  visibility: hidden !important;
-}
-
-/* ENSURE DOWNLOAD AND REFRESH BUTTONS ARE STYLED AND VISIBLE */
-[data-rk] [role="dialog"] a[href*="download"],
-[data-rk] [role="dialog"] a[href*="microsoftedge"],
-[data-rk] [role="dialog"] a[href*="chrome.google.com"],
-[data-rk] [role="dialog"] a[href*="metamask.io"],
-[data-rk] [role="dialog"] button:contains("Refresh"),
-[data-rk] [role="dialog"] button:contains("Install") {
+/* ENSURE INSTALL BUTTONS ARE PROMINENT AND STYLED */
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div a[href*="download"],
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div a[href*="microsoftedge"],
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div a[href*="chrome.google.com"],
+[data-rk] [role="dialog"] [aria-label="Back"] ~ div a[href*="metamask.io"] {
   display: flex !important;
   visibility: visible !important;
   opacity: 1 !important;
   background: #66FCF1 !important;
   color: #0B0C10 !important;
-  font-weight: 700 !important;
-  padding: 12px 24px !important;
+  font-weight: 800 !important;
+  padding: 14px 32px !important;
   border-radius: 4px !important;
   font-size: 14px !important;
   text-decoration: none !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
   justify-content: center !important;
   align-items: center !important;
   width: fit-content !important;
-  margin: 16px auto 0 !important;
-  box-shadow: 0 0 15px rgba(102, 252, 241, 0.4) !important;
-  border: none !important;
-  cursor: pointer !important;
+  margin: 0 auto !important;
+  box-shadow: 0 0 20px rgba(102, 252, 241, 0.5) !important;
+  order: 3 !important; /* Move after the pseudo-elements */
+}
+
+/* MOBILE HIDING REINFORCED */
+[data-rk] img[alt*="Mobile"],
+[data-rk] a[href*="apple.com"],
+[data-rk] a[href*="play.google.com"] {
+  display: none !important;
 }
 
 /* Global Primary Button Style */
@@ -172,11 +181,4 @@ body {
   background-color: #66FCF1 !important;
   color: #0B0C10 !important;
   box-shadow: 0 0 20px rgba(102, 252, 241, 0.4);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  border-color: #45A29E;
-  color: #45A29E;
 }
