@@ -22,7 +22,7 @@ const ProtocolDocs = () => {
       animate="visible"
       className="py-12 px-4 md:px-0 max-w-4xl mx-auto"
     >
-      <h1 className="text-4xl md:text-5xl font-bold text-white mb-12 border-b border-[#45A29E]/30 pb-4 text-center tracking-tight">
+      <h1 className="text-3xl md:text-4xl font-bold text-white mb-12 border-b border-[#45A29E]/30 pb-4 text-center tracking-tight">
         Protocol Architecture
       </h1>
 
