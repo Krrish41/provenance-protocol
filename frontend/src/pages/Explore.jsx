@@ -31,7 +31,7 @@ const Explore = () => {
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, provider);
       const data = await contract.fetchMarketItems();
 
-      const cacheKey = 'provenance_market_metadata_v2';
+      const cacheKey = 'provenance_market_metadata_v3';
       let cache = {};
       try {
         const savedCache = sessionStorage.getItem(cacheKey);
@@ -56,15 +56,15 @@ const Explore = () => {
 
           const gateways = [
             resolveIPFS(tokenUri),
-            tokenUri,
-            tokenUri.replace('gateway.pinata.cloud', 'ipfs.io')
+            tokenUri.replace('ipfs://', 'https://cloudflare-ipfs.com/ipfs/'),
+            tokenUri.replace('ipfs://', 'https://ipfs.io/ipfs/')
           ];
           
           let meta = null;
           for (const url of gateways) {
             try {
               const res = await axios.get(url, { timeout: 3000 });
-              if (res.data) {
+              if (res.data && (res.data.image || res.data.name)) {
                 meta = res.data;
                 break; 
               }
@@ -88,7 +88,7 @@ const Explore = () => {
           
           const itemData = {
             tokenId,
-            image: resolveIPFS(meta.image),
+            image: resolveIPFS(meta.image || meta.imageURL || ""),
             name: meta.name || `Asset #${tokenId}`,
             description: meta.description || "No description provided.",
           };

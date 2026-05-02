@@ -8,23 +8,26 @@ const gateways = [
  * Resolves IPFS URIs into reliable HTTP gateway URLs.
  * Priority: Pinata -> IPFS.io -> Cloudflare
  */
+/**
+ * Resolves IPFS URIs into reliable HTTP gateway URLs.
+ * Cycles through gateways for maximum reliability.
+ */
 export const resolveIPFS = (url) => {
   if (!url) return '';
   
-  // Handle ipfs:// protocol
-  if (url.startsWith('ipfs://')) {
-    const path = url.replace('ipfs://', '');
-    return `${gateways[0]}${path}`;
+  // If it's already a gateway URL, ensure it's using a fast one
+  if (url.includes('ipfs.io') || url.includes('gateway.pinata.cloud')) {
+    // Keep it, but we could also normalize it here
   }
 
-  // Handle CID-only strings
-  if (url.startsWith('Qm') || url.startsWith('ba')) {
-    return `${gateways[0]}${url}`;
+  const cid = url.replace('ipfs://', '').replace('https://gateway.pinata.cloud/ipfs/', '').replace('https://ipfs.io/ipfs/', '').replace('https://cloudflare-ipfs.com/ipfs/', '');
+
+  // Handle various formats
+  if (url.startsWith('ipfs://') || url.startsWith('Qm') || url.startsWith('ba') || url.includes('/ipfs/')) {
+    const cleanCID = cid.split('?')[0]; // Remove queries
+    return `https://cloudflare-ipfs.com/ipfs/${cleanCID}`; // Cloudflare is generally fastest for media
   }
 
-  // If it's already a gateway URL but from a slow provider, we keep it as is 
-  // or could optionally redirect it to our primary gateway.
-  // For now, following user's exact logic:
   return url; 
 };
 

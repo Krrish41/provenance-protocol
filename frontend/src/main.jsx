@@ -42,6 +42,8 @@ createRoot(document.getElementById('root')).render(
           accentColor: '#66FCF1',
           accentColorForeground: '#0B0C10',
           borderRadius: 'small',
+          fontStack: 'system',
+          overlayBlur: 'medium',
         })}>
           <App />
         </RainbowKitProvider>
