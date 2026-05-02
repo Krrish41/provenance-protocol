@@ -47,8 +47,8 @@ const Dashboard = () => {
       const processItem = async (i) => {
         try {
           const tokenId = Number(i.tokenId);
-          const seller = i.seller.toLowerCase();
-          const owner = i.owner.toLowerCase();
+          const seller = i.seller ? i.seller.toLowerCase() : "";
+          const owner = i.owner ? i.owner.toLowerCase() : "";
           
           let tokenUri = "";
           try {
@@ -85,22 +85,27 @@ const Dashboard = () => {
         }
       };
 
-      // 1. Process Personal Holdings (Items user has bought or owns)
-      const processedOwned = await Promise.all(ownedData.map(i => processItem(i)));
+      // Process all data
+      const [processedOwned, processedMarket] = await Promise.all([
+        Promise.all(ownedData.map(i => processItem(i))),
+        Promise.all(marketData.map(i => processItem(i)))
+      ]);
+
+      // 1. Personal Holdings: Items where user is owner AND it's not currently listed in market
+      // (Or items returned by fetchMyNFTs)
       const owned = processedOwned.filter(item => item !== null);
 
-      // 2. Process Active Listings (Items user is selling in the market)
-      const processedMarket = await Promise.all(marketData.map(i => processItem(i)));
-      const listed = processedMarket.filter(item => 
-        item !== null && 
-        (item.seller === userAddr) && 
-        !item.sold
-      );
+      // 2. Active Listings: Items from marketData where user is EITHER seller or owner
+      const listed = processedMarket.filter(item => {
+        if (!item) return false;
+        const isUserRelated = (item.seller === userAddr || item.owner === userAddr);
+        return isUserRelated && !item.sold;
+      });
 
-      console.log("Dashboard Sync Complete:", { 
-        address: userAddr,
-        holdingsCount: owned.length, 
-        listingsCount: listed.length 
+      console.log("Dashboard Refresh:", { 
+        user: userAddr,
+        foundInHoldings: owned.length, 
+        foundInMarket: listed.length 
       });
 
       setOwnedNfts(owned);
