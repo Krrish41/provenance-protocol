@@ -13,7 +13,7 @@ const Contact = () => {
       <div className="bg-[#1e2024]/50 border border-[#45A29E]/30 rounded-xl p-10 backdrop-blur-sm">
         <Mail className="w-12 h-12 text-[#66FCF1] mx-auto mb-6" />
         <p className="text-[#C5C6C7] text-lg mb-6">
-          For support, security disclosures, or enterprise onboarding, please reach out to us at:
+          For technical support, protocol inquiries, or security disclosures, please reach out at:
         </p>
         <a 
           href="mailto:krrish4173@gmail.com" 
