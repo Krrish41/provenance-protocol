@@ -3,10 +3,22 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Boxes, Menu, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+
+  const handleConnect = async (openConnectModal) => {
+    try {
+      if (!window.ethereum && !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        toast.error("No wallet extension detected. Please install MetaMask or Rainbow.");
+      }
+      await openConnectModal();
+    } catch (e) {
+      toast.error("Connection cancelled by user");
+    }
+  };
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
@@ -57,13 +69,7 @@ const Navbar = () => {
                       if (!connected) {
                         return (
                           <button 
-                            onClick={async () => {
-                              try {
-                                await openConnectModal();
-                              } catch (e) {
-                                console.error("Wallet connection cancelled");
-                              }
-                            }} 
+                            onClick={() => handleConnect(openConnectModal)} 
                             type="button" 
                             className="btn-primary px-6 py-2.5 rounded-lg text-sm interactive"
                           >
@@ -146,7 +152,7 @@ const Navbar = () => {
                 if (!connected) {
                   return (
                     <button 
-                      onClick={() => { openConnectModal(); closeMenu(); }} 
+                      onClick={() => { handleConnect(openConnectModal); closeMenu(); }} 
                       className="w-full btn-primary py-4 rounded-xl text-base font-bold"
                     >
                       Connect Wallet

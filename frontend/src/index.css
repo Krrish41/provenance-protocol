@@ -51,10 +51,23 @@ body {
   opacity: 1;
 }
 
-/* Wallet Modal Mobile Refinement */
+/* Wallet Modal Refinements */
 [data-rk] [role="dialog"] {
   max-width: 90vw !important;
   margin: auto !important;
+  animation: rk-fade-in 0.2s ease-out !important;
+}
+
+@keyframes rk-fade-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Hide 'Learn More' and 'Understand' links */
+[data-rk] a[href*="rainbow.me"],
+[data-rk] a[href*="understanding-wallets"],
+[data-rk] button[aria-label="Learn more about wallets"] {
+  display: none !important;
 }
 
 /* Scale down wallet icons */
@@ -63,6 +76,11 @@ body {
 [data-rk] div[style*="width: 48px"] {
   width: 32px !important;
   height: 32px !important;
+}
+
+/* Fix persistent icons when switching */
+[data-rk] [role="dialog"] div[style*="display: flex; flex-direction: column"] > div:has(img[alt="MetaMask"]):not(:first-child) {
+  display: none !important;
 }
 
 /* Tighten Explainer Text */
@@ -90,6 +108,23 @@ body {
   flex: 1 !important;
   padding: 8px 12px !important;
   font-size: 12px !important;
+}
+
+/* Platform-specific 'Get a Wallet' filtering */
+@media (pointer: fine) {
+  [data-rk] a[href*="apple.com"],
+  [data-rk] a[href*="play.google.com"],
+  [data-rk] div:has(> img[alt*="Mobile"]) {
+    display: none !important;
+  }
+}
+
+@media (pointer: coarse) {
+  [data-rk] a[href*="chrome.google.com"],
+  [data-rk] a[href*="microsoftedge.microsoft.com"],
+  [data-rk] a[href*="addons.mozilla.org"] {
+    display: none !important;
+  }
 }
 
 /* Global Primary Button Style */
