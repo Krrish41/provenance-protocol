@@ -20,13 +20,8 @@ const Explore = () => {
 
   async function loadNFTs() {
     try {
-      let provider;
-      if (window.ethereum) {
-        provider = new BrowserProvider(window.ethereum);
-      } else {
-        const rpcUrl = import.meta.env.VITE_SCAI_RPC_URL || "https://34.rpc.thirdweb.com";
-        provider = new JsonRpcProvider(rpcUrl);
-      }
+      const rpcUrl = import.meta.env.VITE_SCAI_RPC_URL || "https://34.rpc.thirdweb.com";
+      const provider = new JsonRpcProvider(rpcUrl);
 
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, provider);
       const data = await contract.fetchMarketItems();

@@ -18,3 +18,34 @@ body {
 .interactive {
   cursor: pointer;
 }
+
+/* RainbowKit Custom Theme Overrides (Safe Mode) */
+[data-rk] {
+  --rk-colors-modalBackground: rgba(11, 12, 16, 0.95) !important;
+  --rk-colors-modalBorder: #45A29E !important;
+  --rk-colors-modalText: #C5C6C7 !important;
+  --rk-colors-modalTextSecondary: #45A29E !important;
+  --rk-fonts-body: var(--font-mono) !important;
+  --rk-radii-modal: 4px !important;
+}
+
+/* Wallet Item Hover Effect */
+[data-rk] button[type="button"]:hover {
+  transform: translateX(8px) !important;
+  background: rgba(102, 252, 241, 0.05) !important;
+  border: 1px solid #66FCF1 !important;
+  box-shadow: 0 0 20px rgba(102, 252, 241, 0.1) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Close Button Fix */
+[data-rk] button[aria-label="Close"] {
+  border: 1px solid #45A29E !important;
+  opacity: 0.6;
+}
+
+[data-rk] button[aria-label="Close"]:hover {
+  border-color: #66FCF1 !important;
+  color: #66FCF1 !important;
+  opacity: 1;
+}
