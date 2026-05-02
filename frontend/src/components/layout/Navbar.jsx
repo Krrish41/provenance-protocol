@@ -124,14 +124,14 @@ const Navbar = () => {
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="md:hidden absolute top-20 left-0 w-full bg-[#0B0C10] border-b border-[#45A29E]/30 py-8 px-6 flex flex-col gap-6 z-40 backdrop-blur-xl shadow-2xl"
+          className="md:hidden absolute top-20 left-0 w-full bg-[#0B0C10] border-b border-[#45A29E]/30 py-6 px-4 flex flex-col gap-4 z-40 backdrop-blur-xl shadow-2xl"
         >
           {navLinks.map((link) => (
             <Link
               key={link.path}
               to={link.path}
               onClick={closeMenu}
-              className={`text-xl uppercase tracking-widest font-bold py-2 ${
+              className={`text-lg uppercase tracking-widest font-bold py-1 ${
                 location.pathname === link.path ? 'text-[#66FCF1]' : 'text-[#C5C6C7]'
               }`}
             >

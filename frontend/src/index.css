@@ -51,6 +51,47 @@ body {
   opacity: 1;
 }
 
+/* Wallet Modal Mobile Refinement */
+[data-rk] [role="dialog"] {
+  max-width: 90vw !important;
+  margin: auto !important;
+}
+
+/* Scale down wallet icons */
+[data-rk] img[alt*="Wallet"], 
+[data-rk] img[src*="wallet"],
+[data-rk] div[style*="width: 48px"] {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+/* Tighten Explainer Text */
+[data-rk] div[style*="font-size: 18px"],
+[data-rk] h2 {
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+}
+
+[data-rk] div[style*="font-size: 14px"] {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  opacity: 0.8 !important;
+}
+
+/* Side-by-side buttons in 'Get a Wallet' */
+[data-rk] div[style*="display: flex; flex-direction: column"] {
+  flex-direction: row !important;
+  gap: 8px !important;
+  justify-content: center !important;
+}
+
+[data-rk] div[style*="display: flex; flex-direction: column"] button {
+  width: auto !important;
+  flex: 1 !important;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+}
+
 /* Global Primary Button Style */
 .btn-primary {
   background-color: transparent;
