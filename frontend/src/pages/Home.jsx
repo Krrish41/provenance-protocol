@@ -8,11 +8,12 @@ const Home = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
+        className="max-w-4xl px-4"
       >
-        <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white tracking-tight">
-          True Digital <span className="text-[#66FCF1] block mt-2">Provenance.</span>
+        <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 text-white tracking-tight leading-[1.1]">
+          True Digital <span className="text-[#66FCF1] sm:block sm:mt-2">Provenance.</span>
         </h1>
-        <p className="text-[#C5C6C7] text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-[#C5C6C7] text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed opacity-80">
           The next-generation NFT marketplace secured by the SCAI Mainnet.
           Mint, trade, and verify assets with unparalleled speed and zero compromises.
         </p>

@@ -4,6 +4,7 @@ import { motion, useSpring } from 'framer-motion';
 const CursorTrail = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   // Smooth springs for the cursor
   const springConfig = { damping: 25, stiffness: 300, mass: 0.5 };
@@ -11,6 +12,8 @@ const CursorTrail = () => {
   const cursorY = useSpring(0, springConfig);
 
   useEffect(() => {
+    setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches);
+    
     const updateMousePosition = (e) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
       cursorX.set(e.clientX - 16);
@@ -37,6 +40,8 @@ const CursorTrail = () => {
       window.removeEventListener('mouseover', handleMouseOver);
     };
   }, [cursorX, cursorY]);
+
+  if (isTouchDevice) return null;
 
   return (
     <motion.div

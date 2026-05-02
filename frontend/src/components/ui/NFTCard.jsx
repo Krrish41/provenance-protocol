@@ -19,9 +19,13 @@ const NFTCard = ({ item, onAction, onClick }) => {
 
   const button = getButtonState();
 
-  const handleAction = (e) => {
+  const handleAction = async (e) => {
     e.stopPropagation();
-    button.action();
+    try {
+      await button.action();
+    } catch (err) {
+      console.error("Action execution failed:", err);
+    }
   };
 
   return (
