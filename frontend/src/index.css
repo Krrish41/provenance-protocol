@@ -111,36 +111,53 @@ body {
 }
 
 /* Platform-specific 'Get a Wallet' filtering */
-/* Desktop: Hide Mobile App options */
-@media (pointer: fine) {
-  [data-rk] a[href*="apple.com"],
-  [data-rk] a[href*="play.google.com"],
-  [data-rk] img[alt*="Mobile"],
-  [data-rk] div[aria-label*="Mobile"],
-  [data-rk] button[aria-label*="Mobile"] {
-    display: none !important;
-  }
+/* GLOBALLY Hide Mobile Options as per request (Focus on Desktop) */
+[data-rk] img[alt*="Mobile"],
+[data-rk] div[aria-label*="Mobile"],
+[data-rk] button[aria-label*="Mobile"],
+[data-rk] a[href*="apple.com"],
+[data-rk] a[href*="play.google.com"],
+[data-rk] div:has(> h2:contains("Mobile")),
+[data-rk] div:has(> div > h2:contains("App")) {
+  display: none !important;
 }
 
-/* Mobile: Hide Browser Extension options */
-@media (pointer: coarse) {
-  [data-rk] a[href*="chrome.google.com"],
-  [data-rk] a[href*="microsoftedge"],
-  [data-rk] a[href*="mozilla.org"],
-  [data-rk] img[alt*="Extension"],
-  [data-rk] div[aria-label*="Extension"] {
-    display: none !important;
-  }
-}
-
-/* Ensure 'Get' buttons for extensions are visible on desktop */
+/* Ensure 'Get' / 'Add to' buttons for extensions are visible and polished */
 [data-rk] [role="dialog"] a[href*="microsoftedge"],
 [data-rk] [role="dialog"] a[href*="chrome.google.com"],
 [data-rk] [role="dialog"] a[href*="addons.mozilla.org"] {
   display: flex !important;
   visibility: visible !important;
   opacity: 1 !important;
-  min-height: 40px !important;
+  background: #66FCF1 !important;
+  color: #0B0C10 !important;
+  font-weight: 800 !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  text-decoration: none !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: fit-content !important;
+  margin: 16px auto 0 !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 14px rgba(102, 252, 241, 0.3) !important;
+}
+
+[data-rk] [role="dialog"] a[href*="microsoftedge"]:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(102, 252, 241, 0.4) !important;
+}
+
+/* Layout Alignment for Browser Cards */
+[data-rk] div[style*="display: flex; flex-direction: column"]:has(a[href*="browser"]) {
+  align-items: center !important;
+  text-align: center !important;
+}
+
+[data-rk] div[style*="display: flex; flex-direction: column"] img[alt*="Edge"],
+[data-rk] div[style*="display: flex; flex-direction: column"] img[alt*="Chrome"] {
+  margin-bottom: 12px !important;
 }
 
 /* Global Primary Button Style */

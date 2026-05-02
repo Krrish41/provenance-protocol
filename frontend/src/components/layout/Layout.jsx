@@ -8,26 +8,30 @@ const Layout = ({ children }) => {
   return (
     <div className="min-h-screen bg-[#0B0C10] text-[#C5C6C7] font-mono relative overflow-x-hidden">
       <Toaster 
-        position="bottom-right"
+        position="top-center"
         toastOptions={{
           style: {
-            background: '#1e2024',
+            background: '#0B0C10',
             color: '#66FCF1',
-            border: '1px solid rgba(69, 162, 158, 0.3)',
-            borderRadius: '8px',
+            border: '1px solid rgba(102, 252, 241, 0.3)',
+            borderRadius: '12px',
             fontFamily: 'monospace',
+            padding: '16px 24px',
+            fontSize: '14px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
           },
           success: {
             iconTheme: {
               primary: '#66FCF1',
-              secondary: '#1e2024',
+              secondary: '#0B0C10',
             },
           },
           error: {
             style: {
-              background: '#1e2024',
+              background: '#0B0C10',
               color: '#ff4b4b',
-              border: '1px solid rgba(255, 75, 75, 0.3)',
+              border: '1px solid rgba(255, 75, 75, 0.5)',
+              boxShadow: '0 0 20px rgba(255, 75, 75, 0.2)',
             },
           }
         }}

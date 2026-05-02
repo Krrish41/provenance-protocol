@@ -11,12 +11,24 @@ const Navbar = () => {
 
   const handleConnect = async (openConnectModal) => {
     try {
-      if (!window.ethereum && !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        toast.error("No wallet extension detected. Please install MetaMask or Rainbow.");
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (!window.ethereum && !isMobile) {
+        toast.error(
+          <div className="flex flex-col gap-1">
+            <span className="font-bold">Extension not detected</span>
+            <span className="text-xs opacity-80">Please install a wallet to proceed.</span>
+            <div className="flex gap-4 mt-2">
+              <a href="https://metamask.io/download/" target="_blank" rel="noreferrer" className="text-[#66FCF1] underline text-xs">MetaMask</a>
+              <a href="https://rainbow.me/download" target="_blank" rel="noreferrer" className="text-[#66FCF1] underline text-xs">Rainbow</a>
+            </div>
+          </div>,
+          { duration: 6000 }
+        );
       }
       await openConnectModal();
     } catch (e) {
-      toast.error("Connection cancelled by user");
+      toast.error("Connection cancelled");
     }
   };
 
