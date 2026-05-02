@@ -62,15 +62,15 @@ const NFTCard = ({ item, onAction, onClick }) => {
           {item.description}
         </p>
         
-        <div className="flex justify-between items-end mt-auto">
-          <div>
-            <p className="text-xs text-[#45A29E] uppercase tracking-wider mb-1">Price</p>
-            <p className="text-lg font-bold text-[#66FCF1]">{item.price} SCAI</p>
+        <div className="flex justify-between items-end mt-auto gap-2">
+          <div className="min-w-0">
+            <p className="text-[10px] text-[#45A29E] uppercase tracking-wider mb-0.5">Price</p>
+            <p className="text-sm md:text-lg font-bold text-[#66FCF1] truncate">{item.price} SCAI</p>
           </div>
           <button 
             onClick={handleAction}
             disabled={button.disabled || item.isPending}
-            className={`px-4 py-2 rounded btn-primary text-sm interactive ${
+            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full btn-primary text-[10px] md:text-sm interactive whitespace-nowrap ${
               (button.disabled || item.isPending) ? 'opacity-50' : ''
             }`}
           >

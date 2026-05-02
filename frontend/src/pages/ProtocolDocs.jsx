@@ -20,9 +20,9 @@ const ProtocolDocs = () => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="py-8 max-w-4xl mx-auto"
+      className="py-8 px-4 md:px-0 max-w-4xl mx-auto"
     >
-      <h2 className="text-4xl font-bold text-white mb-12 border-b border-[#45A29E]/30 pb-4 text-center tracking-tight">
+      <h2 className="text-3xl md:text-4xl font-bold text-white mb-12 border-b border-[#45A29E]/30 pb-4 text-center tracking-tight">
         Protocol Architecture
       </h2>
 
@@ -73,15 +73,15 @@ const ProtocolDocs = () => {
           </p>
         </motion.section>
 
-        <motion.section variants={itemVariants} className="bg-[#1e2024]/50 border border-[#45A29E]/30 rounded-xl p-8 backdrop-blur-sm">
+        <motion.section variants={itemVariants} className="bg-[#1e2024]/50 border border-[#45A29E]/30 rounded-xl p-6 md:p-8 backdrop-blur-sm">
           <div className="flex items-center gap-4 mb-6">
             <div className="p-3 bg-[#66FCF1]/10 rounded-lg text-[#66FCF1]">
               <Shield className="w-8 h-8" />
             </div>
             <h3 className="text-2xl font-bold text-[#66FCF1]">4. Governance & Security</h3>
           </div>
-          <p className="text-[#C5C6C7] leading-relaxed mb-4">
-            Security is paramount. The primary `NFTMarketplace.sol` contract utilizes a <code className="bg-[#0B0C10] px-2 py-1 rounded text-[#45A29E]">ReentrancyGuard</code> on all value-transferring functions to prevent recursive fallback attacks.
+          <p className="text-[#C5C6C7] leading-relaxed mb-4 text-sm md:text-base">
+            Security is paramount. The primary <strong className="text-[#66FCF1]">NFTMarketplace.sol</strong> contract utilizes a <code className="bg-[#0B0C10] px-2 py-1 rounded text-[#45A29E] text-xs">ReentrancyGuard</code> on all value-transferring functions to prevent recursive fallback attacks.
           </p>
           <p className="text-[#C5C6C7] leading-relaxed">
             In its initial phase, the protocol is permissioned for upgrades by the deploying multi-sig wallet. Future iterations will transition control to a DAO-governed decentralized autonomous structure utilizing the native SCAI token for voting weight.
