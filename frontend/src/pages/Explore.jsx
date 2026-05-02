@@ -54,20 +54,33 @@ const Explore = () => {
           const tokenUri = await contract.tokenURI(i.tokenId);
           if (!tokenUri) return null;
 
-          const optimizedUri = tokenUri.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com');
+          // Multi-gateway fallback strategy
+          const gateways = [
+            tokenUri.replace('gateway.pinata.cloud', 'cloudflare-ipfs.com'),
+            tokenUri, // Original (Pinata)
+            tokenUri.replace('gateway.pinata.cloud', 'ipfs.io')
+          ];
           
-          let meta;
-          try {
-            const res = await axios.get(optimizedUri, { timeout: 5000 });
-            meta = res.data;
-          } catch (e) {
+          let meta = null;
+          for (const url of gateways) {
+            try {
+              const res = await axios.get(url, { timeout: 3000 });
+              if (res.data) {
+                meta = res.data;
+                break; 
+              }
+            } catch (e) {
+              continue; // Try next gateway
+            }
+          }
+
+          if (!meta) {
             console.warn(`Metadata pending for token ${tokenId}`);
-            // Return placeholder for items with pending metadata
             return {
               tokenId,
               image: '', 
-              name: `Asset #${tokenId}`,
-              description: "Metadata is currently propagating through the protocol. Please check back in a moment.",
+              name: `Asset #${tokenId} // Processing`,
+              description: "The protocol is currently synchronizing this asset's metadata across the IPFS network. High-resolution media will be available shortly.",
               price: formatEther(i.price.toString()),
               seller: i.seller.toLowerCase(),
               owner: i.owner.toLowerCase(),

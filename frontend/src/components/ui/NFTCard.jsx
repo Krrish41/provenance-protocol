@@ -25,15 +25,24 @@ const NFTCard = ({ item, onAction }) => {
       className="bg-[#1e2024]/80 border border-[#45A29E]/30 rounded-xl overflow-hidden backdrop-blur-sm flex flex-col interactive"
     >
       <div className="relative aspect-square overflow-hidden bg-[#0B0C10]">
-        <img 
-          src={item.image} 
-          alt={item.name} 
-          className="object-cover w-full h-full transition-transform duration-500 hover:scale-110"
-        />
+        {item.isPending ? (
+          <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-[#1e2024]">
+            <div className="w-12 h-12 border-2 border-[#66FCF1]/30 border-t-[#66FCF1] rounded-full animate-spin mb-4" />
+            <p className="text-xs text-[#45A29E] uppercase tracking-tighter">Synchronizing with IPFS...</p>
+          </div>
+        ) : (
+          <img 
+            src={item.image} 
+            alt={item.name} 
+            className="object-cover w-full h-full transition-transform duration-500 hover:scale-110"
+          />
+        )}
       </div>
       <div className="p-5 flex flex-col flex-grow">
         <h3 className="text-xl font-bold text-white mb-2">{item.name}</h3>
-        <p className="text-[#C5C6C7] text-sm mb-4 line-clamp-2 flex-grow">{item.description}</p>
+        <p className={`text-[#C5C6C7] text-sm mb-4 line-clamp-2 flex-grow ${item.isPending ? 'italic opacity-60' : ''}`}>
+          {item.description}
+        </p>
         
         <div className="flex justify-between items-end mt-auto">
           <div>
@@ -42,14 +51,14 @@ const NFTCard = ({ item, onAction }) => {
           </div>
           <button 
             onClick={button.action}
-            disabled={button.disabled}
+            disabled={button.disabled || item.isPending}
             className={`px-4 py-2 rounded transition-colors font-bold text-sm uppercase tracking-wide interactive ${
-              button.disabled 
+              (button.disabled || item.isPending)
                 ? 'bg-[#45A29E]/10 border border-[#45A29E]/30 text-[#45A29E] cursor-not-allowed' 
                 : 'bg-[#66FCF1]/10 border border-[#66FCF1] text-[#66FCF1] hover:bg-[#66FCF1] hover:text-[#0B0C10]'
             }`}
           >
-            {button.text}
+            {item.isPending ? 'Syncing...' : button.text}
           </button>
         </div>
       </div>
