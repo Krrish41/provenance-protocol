@@ -26,21 +26,47 @@ export const scaiMainnet = defineChain({
   },
 });
 
-import { metaMaskWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
+import { metaMaskWallet, rainbowWallet } from '@rainbow-me/rainbowkit/wallets';
+
+const projectId = '8952458467431e676a161864115f5d81';
+
+// Custom wallet wrappers to strip mobile options
+const customMetaMask = () => {
+  const wallet = metaMaskWallet({ projectId });
+  return {
+    ...wallet,
+    downloadUrls: {
+      browserExtension: 'https://metamask.io/download/',
+    },
+    qrCode: undefined,
+  };
+};
+
+const customRainbow = () => {
+  const wallet = rainbowWallet({ projectId });
+  return {
+    ...wallet,
+    downloadUrls: {
+      browserExtension: 'https://rainbow.me/download',
+    },
+    qrCode: undefined,
+  };
+};
 
 const config = getDefaultConfig({
   appName: 'Provenance Protocol',
-  projectId: '8952458467431e676a161864115f5d81', // Placeholder projectId to prevent crashes. Get yours at cloud.walletconnect.com
+  projectId,
   chains: [scaiMainnet],
   wallets: [{
     groupName: 'Recommended',
     wallets: [
-      metaMaskWallet, 
-      rainbowWallet
+      customMetaMask,
+      customRainbow,
     ],
   }],
   ssr: false,
 });
+
 const queryClient = new QueryClient();
 
 createRoot(document.getElementById('root')).render(

@@ -64,7 +64,6 @@ body {
 }
 
 /* Hide 'Learn More' and 'Understand' links */
-[data-rk] a[href*="rainbow.me"],
 [data-rk] a[href*="understanding-wallets"],
 [data-rk] button[aria-label="Learn more about wallets"] {
   display: none !important;
@@ -76,11 +75,6 @@ body {
 [data-rk] div[style*="width: 48px"] {
   width: 32px !important;
   height: 32px !important;
-}
-
-/* Fix persistent icons when switching */
-[data-rk] [role="dialog"] div[style*="display: flex; flex-direction: column"] > div:has(img[alt="MetaMask"]):not(:first-child) {
-  display: none !important;
 }
 
 /* Tighten Explainer Text */
@@ -101,42 +95,29 @@ body {
   flex-direction: row !important;
   gap: 8px !important;
   justify-content: center !important;
+  flex-wrap: wrap !important;
 }
 
-[data-rk] div[style*="display: flex; flex-direction: column"] button {
-  width: auto !important;
-  flex: 1 !important;
-  padding: 8px 12px !important;
-  font-size: 12px !important;
+/* STRICT MOBILE HIDING - VALID CSS ONLY */
+/* Hide the second card (Mobile) in the platform selection screen */
+[data-rk] [role="dialog"] div:has(> div > h2) > div:nth-child(n+2) {
+  display: none !important;
 }
 
-/* Platform-specific 'Get a Wallet' filtering */
-/* GLOBALLY Hide Mobile Options - Targeted at RainbowKit Structure */
-[data-rk] div[style*="display: flex; flex-direction: column"] > div:has(h2),
-[data-rk] div[style*="display: flex; flex-direction: column"] > div:has(img) {
-  /* We'll use a more surgical approach below */
-}
-
-/* Hide specific mobile indicators */
+/* Hide by attributes (safe for Tailwind v4 parser) */
 [data-rk] img[alt*="Mobile"],
-[data-rk] img[src*="apple"],
-[data-rk] img[src*="google-play"],
 [data-rk] a[href*="apple.com"],
-[data-rk] a[href*="play.google.com"] {
+[data-rk] a[href*="play.google.com"],
+[data-rk] a[href*="itunes.apple.com"],
+[data-rk] a[href*="apps.apple.com"] {
   display: none !important;
+  visibility: hidden !important;
 }
 
-/* Hide the entire mobile card container */
-[data-rk] div[style*="display: flex; flex-direction: column"] > div:has(img[alt*="Mobile"]),
-[data-rk] div[style*="display: flex; flex-direction: column"] > div:has(a[href*="apple.com"]),
-[data-rk] div[style*="display: flex; flex-direction: column"] > div:has(button div:contains("Get the app")) {
-  display: none !important;
-}
-
-/* Fix for Browser Extension Buttons */
+/* ENSURE DOWNLOAD BUTTONS ARE STYLED AND VISIBLE */
+[data-rk] [role="dialog"] a[href*="download"],
 [data-rk] [role="dialog"] a[href*="microsoftedge"],
 [data-rk] [role="dialog"] a[href*="chrome.google.com"],
-[data-rk] [role="dialog"] a[href*="rainbow.me/download"],
 [data-rk] [role="dialog"] a[href*="metamask.io"] {
   display: flex !important;
   visibility: visible !important;
@@ -152,37 +133,7 @@ body {
   align-items: center !important;
   width: fit-content !important;
   margin: 16px auto 0 !important;
-  box-shadow: 0 4px 14px rgba(102, 252, 241, 0.3) !important;
-}
-
-/* Ensure the Rainbow button specifically shows up */
-[data-rk] div:has(> div > h2:contains("Rainbow")) a,
-[data-rk] div:has(> div > h2:contains("Edge")) a {
-   display: flex !important;
-}
-
-/* Fix persistent 'Opening MetaMask' state when Rainbow is selected */
-/* This is a hack to hide mismatched connecting states */
-[data-rk] div:has(> img[alt="MetaMask"]) + div:contains("Opening MetaMask"):not([style*="display: none"]) {
-  /* Target the text container */
-}
-
-/* Force hide MetaMask icon/text if Rainbow is the selected tab (Tab 2) */
-[data-rk] button[id*="rainbow"]:aria-selected("true") ~ div img[alt="MetaMask"],
-[data-rk] button[id*="rainbow"]:aria-selected("true") ~ div div:contains("MetaMask") {
-  display: none !important;
-}
-
-/* Layout Alignment for Browser Cards */
-[data-rk] div[style*="display: flex; flex-direction: column"]:has(img[alt*="Edge"]),
-[data-rk] div[style*="display: flex; flex-direction: column"]:has(img[alt*="Chrome"]) {
-  align-items: center !important;
-  text-align: center !important;
-}
-
-[data-rk] div[style*="display: flex; flex-direction: column"] img[alt*="Edge"],
-[data-rk] div[style*="display: flex; flex-direction: column"] img[alt*="Chrome"] {
-  margin-bottom: 12px !important;
+  box-shadow: 0 0 15px rgba(102, 252, 241, 0.4) !important;
 }
 
 /* Global Primary Button Style */
