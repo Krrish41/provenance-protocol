@@ -61,6 +61,11 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
+  // Filter out duplicates (sometimes browser extensions inject multiple providers)
+  const uniqueConnectors = connectors.filter((connector, index, self) => 
+    index === self.findIndex((c) => c.name === connector.name)
+  );
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -90,7 +95,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
         <div className="w-1/3 border-r border-[#45A29E]/30 p-6 flex flex-col gap-4">
           <h3 className="text-[#66FCF1] font-mono text-xs uppercase tracking-[0.2em] mb-4">Select Provider</h3>
           <div className="flex flex-col gap-2">
-            {connectors.map((connector) => (
+            {uniqueConnectors.map((connector) => (
               <button
                 key={connector.id}
                 onClick={() => handleConnectorClick(connector)}
