@@ -21,10 +21,18 @@ const Explore = () => {
           setLoading(false);
           return;
       }
-      // Using a generic provider to read the blockchain state
       const provider = new BrowserProvider(window.ethereum);
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, provider);
       const data = await contract.fetchMarketItems();
+
+      // Get current user address to identify owned items
+      let userAddress = "";
+      try {
+        const accounts = await provider.send("eth_accounts", []);
+        if (accounts.length > 0) userAddress = accounts[0].toLowerCase();
+      } catch (e) {
+        console.error("Error fetching account:", e);
+      }
 
       const items = await Promise.all(data.map(async i => {
         const tokenUri = await contract.tokenURI(i.tokenId);
@@ -33,11 +41,12 @@ const Explore = () => {
         return {
           price,
           tokenId: Number(i.tokenId),
-          seller: i.seller,
-          owner: i.owner,
+          seller: i.seller.toLowerCase(),
+          owner: i.owner.toLowerCase(),
           image: meta.data.image,
           name: meta.data.name,
           description: meta.data.description,
+          isUserSeller: i.seller.toLowerCase() === userAddress
         };
       }));
 
@@ -54,9 +63,16 @@ const Explore = () => {
       if (!window.ethereum) return alert("Please install MetaMask!");
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
+      
+      // Check if user is the seller
+      const userAddress = (await signer.getAddress()).toLowerCase();
+      if (nft.seller === userAddress) {
+        return alert("You cannot buy your own NFT. It is already listed by you!");
+      }
 
+      const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
       const price = parseEther(nft.price.toString());
+      
       const transaction = await contract.createMarketSale(nft.tokenId, {
         value: price
       });
@@ -67,7 +83,7 @@ const Explore = () => {
       loadNFTs();
     } catch (error) {
       console.error("Error buying NFT:", error);
-      alert("Error purchasing NFT. See console.");
+      alert("Error purchasing NFT. Check if you have sufficient SCAI for the price and gas.");
     }
   }
 
@@ -93,7 +109,12 @@ const Explore = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {nfts.map((nft, i) => (
-            <NFTCard key={i} item={nft} isOwner={false} onAction={buyNft} />
+            <NFTCard 
+              key={i} 
+              item={nft} 
+              isOwner={nft.isUserSeller} 
+              onAction={buyNft} 
+            />
           ))}
         </div>
       )}
