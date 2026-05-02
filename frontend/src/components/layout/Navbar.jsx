@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccount, useDisconnect, useBalance } from 'wagmi';
-import { Boxes, Menu, X, LogOut, Wallet } from 'lucide-react';
+import { Boxes, Menu, X, LogOut, User, ChevronDown } from 'lucide-react';
 import ProvenanceWalletModal from '../ui/ProvenanceWalletModal';
 import { useWalletModal } from '../../context/WalletModalContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [showFullBalance, setShowFullBalance] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const { isWalletModalOpen, openWalletModal, closeWalletModal } = useWalletModal();
   const location = useLocation();
   const { address, isConnected } = useAccount();
@@ -17,6 +18,17 @@ const Navbar = () => {
   const { data: balance } = useBalance({
     address: address,
   });
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
@@ -56,54 +68,59 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden md:block">
+            <div className="hidden md:block relative" ref={dropdownRef}>
               {isConnected ? (
                 <div className="flex items-center gap-3">
+                  {/* Profile Avatar Trigger */}
                   <motion.button 
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowFullBalance(!showFullBalance)}
-                    className="flex items-center gap-0.5 group relative overflow-hidden"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsProfileOpen(!isProfileOpen)}
+                    className="flex items-center justify-center w-10 h-10 rounded-lg border border-[#45A29E] bg-[#1e2024]/50 text-[#66FCF1] hover:border-[#66FCF1] hover:shadow-[0_0_15px_rgba(102,252,241,0.3)] transition-all duration-300 relative group"
                   >
-                    <div className="bg-[#1e2024] border border-[#45A29E]/30 border-r-0 px-4 py-2 rounded-l flex items-center gap-2 min-w-[140px] transition-colors group-hover:border-[#66FCF1]/50">
-                      <AnimatePresence mode="wait">
-                        {!showFullBalance ? (
-                          <motion.div 
-                            key="addr"
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 10 }}
-                            className="flex items-center gap-2"
-                          >
-                            <div className="w-2 h-2 rounded-full bg-[#66FCF1] animate-pulse" />
-                            <span className="text-[#66FCF1] font-mono text-sm">{formatAddress(address)}</span>
-                          </motion.div>
-                        ) : (
-                          <motion.div 
-                            key="msg"
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 10 }}
-                            className="flex items-center gap-2"
-                          >
-                            <Wallet size={14} className="text-[#66FCF1]" />
-                            <span className="text-[#66FCF1] font-mono text-[10px] uppercase tracking-tighter">SCAI Available</span>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                    <div className="bg-[#1e2024]/50 border border-[#45A29E]/30 px-4 py-2 rounded-r flex items-center gap-1.5 cursor-default group-hover:border-[#66FCF1]/50 transition-colors">
-                      <span className="text-white font-mono text-sm font-bold">{formatBalance(balance)}</span>
-                      <span className="text-[#45A29E] font-mono text-[10px] uppercase group-hover:text-[#66FCF1] transition-colors">SCAI</span>
-                    </div>
+                    <User size={20} />
+                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-[#66FCF1] rounded-full border-2 border-[#0B0C10] animate-pulse" />
                   </motion.button>
-                  <button 
-                    onClick={() => disconnect()}
-                    className="p-2 text-[#45A29E] hover:text-red-400 transition-colors"
-                    title="Disconnect"
-                  >
-                    <LogOut size={18} />
-                  </button>
+
+                  {/* Desktop Dropdown */}
+                  <AnimatePresence>
+                    {isProfileOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute right-0 mt-2 w-56 bg-[#0B0C10] border border-[#45A29E] rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.6)] z-50 overflow-hidden"
+                        style={{ top: '100%' }}
+                      >
+                        <div className="p-4 space-y-4">
+                          <div className="space-y-1">
+                            <p className="text-[#45A29E] text-[10px] uppercase font-mono tracking-widest">Protocol Address</p>
+                            <p className="text-[#C5C6C7] font-mono text-sm">{formatAddress(address)}</p>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <p className="text-[#45A29E] text-[10px] uppercase font-mono tracking-widest">SCAI Balance</p>
+                            <p className="text-[#66FCF1] font-mono text-lg font-bold">
+                              {formatBalance(balance)} <span className="text-[10px]">SCAI</span>
+                            </p>
+                          </div>
+
+                          <div className="border-b border-[#45A29E]/20" />
+
+                          <button 
+                            onClick={() => {
+                              disconnect();
+                              setIsProfileOpen(false);
+                            }}
+                            className="w-full flex items-center justify-between p-2 rounded hover:bg-[#1e2024] text-[#C5C6C7] hover:text-red-400 transition-all duration-200 group"
+                          >
+                            <span className="text-xs uppercase font-bold tracking-widest">Disconnect</span>
+                            <LogOut size={16} className="group-hover:translate-x-1 transition-transform" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               ) : (
                 <button 

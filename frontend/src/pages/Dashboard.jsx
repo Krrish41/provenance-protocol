@@ -37,15 +37,21 @@ const Dashboard = () => {
       const signer = await provider.getSigner();
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
       
-      const [ownedData, listedData] = await Promise.all([
+      const [ownedData, marketData] = await Promise.all([
         contract.fetchMyNFTs().catch(e => { console.error("fetchMyNFTs failed", e); return []; }),
-        contract.fetchItemsListed().catch(e => { console.error("fetchItemsListed failed", e); return []; })
+        contract.fetchMarketItems().catch(e => { console.error("fetchMarketItems failed", e); return []; })
       ]);
 
-      const processData = async (data) => {
+      const processData = async (data, filterBySeller = false) => {
         const items = await Promise.all(data.map(async i => {
           try {
             const tokenId = Number(i.tokenId);
+            
+            // If filtering by seller, only include items where seller matches connected address
+            if (filterBySeller && i.seller.toLowerCase() !== address.toLowerCase()) {
+                return null;
+            }
+
             let tokenUri = "";
             try {
               tokenUri = await contract.tokenURI(i.tokenId);
@@ -76,7 +82,7 @@ const Dashboard = () => {
             };
           } catch (err) {
             console.error("Error processing item", i.tokenId, err);
-            return null; // Skip this item instead of crashing everything
+            return null;
           }
         }));
         return items.filter(item => item !== null);
@@ -84,7 +90,7 @@ const Dashboard = () => {
 
       const [owned, listed] = await Promise.all([
         processData(ownedData),
-        processData(listedData)
+        processData(marketData, true) // Pass true to filter by current user's seller address
       ]);
 
       setOwnedNfts(owned);
