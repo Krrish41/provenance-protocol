@@ -36,8 +36,7 @@ const config = getDefaultConfig({
     groupName: 'Recommended',
     wallets: [
       metaMaskWallet, 
-      rainbowWallet, 
-      walletConnectWallet
+      rainbowWallet
     ],
   }],
   ssr: false,
