@@ -31,15 +31,12 @@ const Explore = () => {
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, provider);
       const data = await contract.fetchMarketItems();
 
-      // Retrieve cache with safety wrapper for restrictive incognito modes
       const cacheKey = 'provenance_market_metadata_v2';
       let cache = {};
       try {
         const savedCache = sessionStorage.getItem(cacheKey);
         if (savedCache) cache = JSON.parse(savedCache);
-      } catch (e) {
-        console.warn("sessionStorage access restricted.");
-      }
+      } catch (e) {}
 
       const items = await Promise.all(data.map(async i => {
         const tokenId = Number(i.tokenId);
@@ -57,10 +54,9 @@ const Explore = () => {
           const tokenUri = await contract.tokenURI(i.tokenId);
           if (!tokenUri) return null;
 
-          // Multi-gateway fallback strategy
           const gateways = [
             resolveIPFS(tokenUri),
-            tokenUri, // Original
+            tokenUri,
             tokenUri.replace('gateway.pinata.cloud', 'ipfs.io')
           ];
           
@@ -78,12 +74,11 @@ const Explore = () => {
           }
 
           if (!meta) {
-            console.warn(`Metadata pending for token ${tokenId}`);
             return {
               tokenId,
               image: '', 
               name: `Asset #${tokenId} // Syncing`,
-              description: "The protocol is currently synchronizing this asset's metadata. Provenance verification in progress.",
+              description: "The protocol is currently synchronizing this asset's metadata.",
               price: formatEther(i.price.toString()),
               seller: i.seller.toLowerCase(),
               owner: i.owner.toLowerCase(),
@@ -110,7 +105,6 @@ const Explore = () => {
             owner: i.owner.toLowerCase(),
           };
         } catch (e) {
-          console.error(`Error processing token ${tokenId}:`, e);
           return null;
         }
       }));
@@ -119,38 +113,34 @@ const Explore = () => {
       setLoading(false);
     } catch (error) {
       console.error("Error loading NFTs:", error);
-      toast.error("Failed to fetch marketplace data.");
       setLoading(false);
     }
   }
 
   async function buyNft(nft) {
     try {
-      if (!window.ethereum) return toast.error("Please install MetaMask to purchase assets!");
+      if (!window.ethereum) return toast.error("Please install MetaMask!");
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      
       const userAddress = (await signer.getAddress()).toLowerCase();
+      
       if (nft.seller === userAddress) {
         return toast.error("You cannot buy this asset. It is already owned or listed by you.");
       }
 
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
       const price = parseEther(nft.price.toString());
+      const transaction = await contract.createMarketSale(nft.tokenId, { value: price });
       
-      const transaction = await contract.createMarketSale(nft.tokenId, {
-        value: price
-      });
-      
-      const loadingToast = toast.loading("Confirming transaction on SCAI Mainnet...");
+      const loadingToast = toast.loading("Confirming transaction...");
       await transaction.wait();
       toast.dismiss(loadingToast);
-      toast.success("Provenance ownership verified. Asset transferred.");
+      toast.success("Purchase successful!");
       loadNFTs();
       if (selectedNft) setSelectedNft(null);
     } catch (error) {
       console.error("Error buying NFT:", error);
-      toast.error("Transaction failed. Verify SCAI balance and gas.");
+      toast.error("Transaction failed.");
     }
   }
 
@@ -171,7 +161,6 @@ const Explore = () => {
       ) : nfts.length === 0 ? (
         <div className="text-center py-20 text-[#C5C6C7] bg-[#1e2024]/30 rounded-xl border border-[#45A29E]/10">
           <p className="text-xl">No items in marketplace</p>
-          <p className="text-sm mt-2">Check back later or mint your own!</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -196,8 +185,6 @@ const Explore = () => {
       )}
     </motion.div>
   );
-
 };
 
 export default Explore;
-

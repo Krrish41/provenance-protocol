@@ -33,7 +33,6 @@ const Layout = ({ children }) => {
         }}
       />
       <div className="fixed inset-0 z-0">
-
         <ParticleGrid />
       </div>
       <CursorTrail />
