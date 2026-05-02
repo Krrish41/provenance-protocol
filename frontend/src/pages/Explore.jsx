@@ -21,8 +21,9 @@ const Explore = () => {
       if (window.ethereum) {
         provider = new BrowserProvider(window.ethereum);
       } else {
-        // Fallback for incognito/no-wallet users
-        provider = new JsonRpcProvider(import.meta.env.VITE_SCAI_RPC_URL);
+        // Fallback for incognito/no-wallet users with hardcoded default if ENV is missing
+        const rpcUrl = import.meta.env.VITE_SCAI_RPC_URL || "https://34.rpc.thirdweb.com";
+        provider = new JsonRpcProvider(rpcUrl);
       }
 
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, provider);
