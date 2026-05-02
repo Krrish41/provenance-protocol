@@ -41,7 +41,9 @@ createRoot(document.getElementById('root')).render(
         <RainbowKitProvider theme={darkTheme({
           accentColor: '#66FCF1',
           accentColorForeground: '#0B0C10',
-          borderRadius: 'medium',
+          borderRadius: 'small',
+          fontStack: 'system',
+          overlayBlur: 'medium',
         })}>
           <App />
         </RainbowKitProvider>

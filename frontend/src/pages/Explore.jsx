@@ -7,7 +7,7 @@ import NFTCard from '../components/ui/NFTCard';
 import NFTModal from '../components/ui/NFTModal';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import toast from 'react-hot-toast';
-import { getIPFSUrl } from '../utils/ipfs';
+import { resolveIPFS } from '../utils/ipfs';
 
 const Explore = () => {
   const [nfts, setNfts] = useState([]);
@@ -59,7 +59,7 @@ const Explore = () => {
 
           // Multi-gateway fallback strategy
           const gateways = [
-            getIPFSUrl(tokenUri),
+            resolveIPFS(tokenUri),
             tokenUri, // Original
             tokenUri.replace('gateway.pinata.cloud', 'ipfs.io')
           ];
@@ -93,7 +93,7 @@ const Explore = () => {
           
           const itemData = {
             tokenId,
-            image: getIPFSUrl(meta.image),
+            image: resolveIPFS(meta.image),
             name: meta.name || `Asset #${tokenId}`,
             description: meta.description || "No description provided.",
           };

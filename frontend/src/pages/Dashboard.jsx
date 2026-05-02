@@ -7,7 +7,7 @@ import NFTCard from '../components/ui/NFTCard';
 import NFTModal from '../components/ui/NFTModal';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import toast from 'react-hot-toast';
-import { getIPFSUrl } from '../utils/ipfs';
+import { resolveIPFS } from '../utils/ipfs';
 
 const Dashboard = () => {
   const [ownedNfts, setOwnedNfts] = useState([]);
@@ -39,7 +39,7 @@ const Dashboard = () => {
           const tokenUri = await contract.tokenURI(i.tokenId);
           let meta = { data: { name: `Asset #${i.tokenId}`, description: '', image: '' } };
           try {
-            const url = getIPFSUrl(tokenUri);
+            const url = resolveIPFS(tokenUri);
             meta = await axios.get(url, { timeout: 5000 });
           } catch (e) {
             console.warn("Metadata pending for", i.tokenId);
@@ -49,7 +49,7 @@ const Dashboard = () => {
             tokenId: Number(i.tokenId),
             seller: i.seller.toLowerCase(),
             owner: i.owner.toLowerCase(),
-            image: getIPFSUrl(meta.data.image),
+            image: resolveIPFS(meta.data.image),
             name: meta.data.name || `Asset #${i.tokenId}`,
             description: meta.data.description,
           };

@@ -1,28 +1,32 @@
+const gateways = [
+  'https://gateway.pinata.cloud/ipfs/',
+  'https://ipfs.io/ipfs/',
+  'https://cloudflare-ipfs.com/ipfs/'
+];
+
 /**
- * Converts various IPFS URI formats into a reliable gateway URL.
- * Handles ipfs:// protocol, CID-only strings, and existing gateway URLs.
+ * Resolves IPFS URIs into reliable HTTP gateway URLs.
+ * Priority: Pinata -> IPFS.io -> Cloudflare
  */
-export const getIPFSUrl = (url) => {
-    if (!url) return "";
-    
-    // If it's already a gateway URL, prioritize Cloudflare for speed
-    if (url.includes("gateway.pinata.cloud")) {
-        return url.replace("gateway.pinata.cloud", "cloudflare-ipfs.com");
-    }
-    
-    if (url.includes("ipfs.io")) {
-        return url.replace("ipfs.io", "cloudflare-ipfs.com");
-    }
+export const resolveIPFS = (url) => {
+  if (!url) return '';
+  
+  // Handle ipfs:// protocol
+  if (url.startsWith('ipfs://')) {
+    const path = url.replace('ipfs://', '');
+    return `${gateways[0]}${path}`;
+  }
 
-    // Handle ipfs:// protocol
-    if (url.startsWith("ipfs://")) {
-        return `https://cloudflare-ipfs.com/ipfs/${url.split("ipfs://")[1]}`;
-    }
+  // Handle CID-only strings
+  if (url.startsWith('Qm') || url.startsWith('ba')) {
+    return `${gateways[0]}${url}`;
+  }
 
-    // Handle CID-only strings
-    if (url.startsWith("Qm") || url.startsWith("ba")) {
-        return `https://cloudflare-ipfs.com/ipfs/${url}`;
-    }
-
-    return url;
+  // If it's already a gateway URL but from a slow provider, we keep it as is 
+  // or could optionally redirect it to our primary gateway.
+  // For now, following user's exact logic:
+  return url; 
 };
+
+// For backward compatibility if any file still uses getIPFSUrl
+export const getIPFSUrl = resolveIPFS;
