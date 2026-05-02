@@ -9,9 +9,12 @@ import Contact from './pages/Contact';
 import TermsOfService from './pages/legal/TermsOfService';
 import PrivacyPolicy from './pages/legal/PrivacyPolicy';
 
+import ScrollToTop from './components/ui/ScrollToTop';
+
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
