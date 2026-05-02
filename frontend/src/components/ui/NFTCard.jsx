@@ -1,6 +1,24 @@
 import { motion } from 'framer-motion';
+import { useAccount } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 
-const NFTCard = ({ item, isOwner, onAction }) => {
+const NFTCard = ({ item, onAction }) => {
+  const { address, isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
+
+  const isUserOwner = isConnected && address && (
+    (item.seller && item.seller.toLowerCase() === address.toLowerCase()) || 
+    (item.owner && item.owner.toLowerCase() === address.toLowerCase())
+  );
+
+  const getButtonState = () => {
+    if (!isConnected) return { text: 'Connect Wallet', action: openConnectModal, disabled: false };
+    if (isUserOwner) return { text: 'Owned by You', action: () => {}, disabled: true };
+    return { text: 'Buy Asset', action: () => onAction(item), disabled: false };
+  };
+
+  const button = getButtonState();
+
   return (
     <motion.div 
       whileHover={{ y: -10, boxShadow: '0 10px 30px -10px rgba(102,252,241,0.3)' }}
@@ -23,10 +41,15 @@ const NFTCard = ({ item, isOwner, onAction }) => {
             <p className="text-lg font-bold text-[#66FCF1]">{item.price} SCAI</p>
           </div>
           <button 
-            onClick={() => onAction(item)}
-            className="px-4 py-2 bg-[#66FCF1]/10 border border-[#66FCF1] text-[#66FCF1] rounded hover:bg-[#66FCF1] hover:text-[#0B0C10] transition-colors font-bold text-sm uppercase tracking-wide interactive"
+            onClick={button.action}
+            disabled={button.disabled}
+            className={`px-4 py-2 rounded transition-colors font-bold text-sm uppercase tracking-wide interactive ${
+              button.disabled 
+                ? 'bg-[#45A29E]/10 border border-[#45A29E]/30 text-[#45A29E] cursor-not-allowed' 
+                : 'bg-[#66FCF1]/10 border border-[#66FCF1] text-[#66FCF1] hover:bg-[#66FCF1] hover:text-[#0B0C10]'
+            }`}
           >
-            {isOwner ? 'List Item' : 'Buy Now'}
+            {button.text}
           </button>
         </div>
       </div>
@@ -35,3 +58,4 @@ const NFTCard = ({ item, isOwner, onAction }) => {
 };
 
 export default NFTCard;
+

@@ -4,6 +4,7 @@ import { BrowserProvider, Contract, parseEther } from 'ethers';
 import { UploadCloud, Loader2 } from 'lucide-react';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import { uploadFileToIPFS, uploadJSONToIPFS } from '../utils/pinata';
+import toast from 'react-hot-toast';
 
 const Mint = () => {
   const [formInput, setFormInput] = useState({ price: '', name: '', description: '' });
@@ -22,7 +23,9 @@ const Mint = () => {
 
   async function createMarketItem() {
     const { name, description, price } = formInput;
-    if (!name || !description || !price || !file) return alert("Please fill all fields!");
+    if (!name || !description || !price || !file) {
+      return toast.error("Please fill all fields!");
+    }
     
     setUploading(true);
     setStatus('Uploading image to IPFS...');
@@ -50,6 +53,7 @@ const Mint = () => {
       let transaction = await contract.createToken(tokenURI, priceInWei, { value: listingPrice });
       await transaction.wait();
       
+      toast.success('Successfully minted and listed!');
       setStatus('Successfully minted and listed!');
       setFormInput({ price: '', name: '', description: '' });
       setFile(null);
@@ -57,11 +61,13 @@ const Mint = () => {
       setTimeout(() => setStatus(''), 3000);
     } catch (error) {
       console.error("Error minting:", error);
+      toast.error('Error occurred. Please try again.');
       setStatus('Error occurred. Please try again.');
     } finally {
       setUploading(false);
     }
   }
+
 
   return (
     <motion.div 

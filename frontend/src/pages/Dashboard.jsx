@@ -5,6 +5,7 @@ import axios from 'axios';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import NFTCard from '../components/ui/NFTCard';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
+import toast from 'react-hot-toast';
 
 const Dashboard = () => {
   const [nfts, setNfts] = useState([]);
@@ -32,8 +33,8 @@ const Dashboard = () => {
         return {
           price,
           tokenId: Number(i.tokenId),
-          seller: i.seller,
-          owner: i.owner,
+          seller: i.seller.toLowerCase(),
+          owner: i.owner.toLowerCase(),
           image: meta.data.image,
           name: meta.data.name,
           description: meta.data.description,
@@ -49,11 +50,9 @@ const Dashboard = () => {
   }
 
   function listNFT(nft) {
-    // Basic implementation since reselling logic isn't fully built into the MVP contract yet
-    // The current contract only allows listing upon creation.
-    // To support reselling, we would need a resellToken function in the smart contract.
-    alert("Reselling logic requires a contract update (resellToken function). This feature is coming soon to Provenance Protocol V2.");
+    toast.error("Reselling logic requires a contract update (resellToken function). This feature is coming soon to Provenance Protocol V2.");
   }
+
 
   return (
     <motion.div 
@@ -77,7 +76,7 @@ const Dashboard = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {nfts.map((nft, i) => (
-            <NFTCard key={i} item={nft} isOwner={true} onAction={listNFT} />
+            <NFTCard key={i} item={nft} onAction={listNFT} />
           ))}
         </div>
       )}

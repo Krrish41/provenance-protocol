@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BrowserProvider, Contract, formatEther, parseEther } from 'ethers';
+import { BrowserProvider, JsonRpcProvider, Contract, formatEther, parseEther } from 'ethers';
 import axios from 'axios';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import NFTCard from '../components/ui/NFTCard';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
+import toast from 'react-hot-toast';
 
 const Explore = () => {
   const [nfts, setNfts] = useState([]);
@@ -16,23 +17,16 @@ const Explore = () => {
 
   async function loadNFTs() {
     try {
-      if (!window.ethereum) {
-          console.warn("Please install MetaMask");
-          setLoading(false);
-          return;
+      let provider;
+      if (window.ethereum) {
+        provider = new BrowserProvider(window.ethereum);
+      } else {
+        // Fallback for incognito/no-wallet users
+        provider = new JsonRpcProvider(import.meta.env.VITE_SCAI_RPC_URL);
       }
-      const provider = new BrowserProvider(window.ethereum);
+
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, provider);
       const data = await contract.fetchMarketItems();
-
-      // Get current user address to identify owned items
-      let userAddress = "";
-      try {
-        const accounts = await provider.send("eth_accounts", []);
-        if (accounts.length > 0) userAddress = accounts[0].toLowerCase();
-      } catch (e) {
-        console.error("Error fetching account:", e);
-      }
 
       const items = await Promise.all(data.map(async i => {
         const tokenUri = await contract.tokenURI(i.tokenId);
@@ -45,8 +39,7 @@ const Explore = () => {
           owner: i.owner.toLowerCase(),
           image: meta.data.image,
           name: meta.data.name,
-          description: meta.data.description,
-          isUserSeller: i.seller.toLowerCase() === userAddress
+          description: meta.data.description
         };
       }));
 
@@ -54,20 +47,20 @@ const Explore = () => {
       setLoading(false);
     } catch (error) {
       console.error("Error loading NFTs:", error);
+      toast.error("Failed to fetch marketplace data.");
       setLoading(false);
     }
   }
 
   async function buyNft(nft) {
     try {
-      if (!window.ethereum) return alert("Please install MetaMask!");
+      if (!window.ethereum) return toast.error("Please install MetaMask to purchase assets!");
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
-      // Check if user is the seller
       const userAddress = (await signer.getAddress()).toLowerCase();
       if (nft.seller === userAddress) {
-        return alert("You cannot buy your own NFT. It is already listed by you!");
+        return toast.error("You cannot buy this asset. It is already owned or listed by you.");
       }
 
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
@@ -77,13 +70,14 @@ const Explore = () => {
         value: price
       });
       
-      alert("Transaction submitted! Waiting for confirmation...");
+      const loadingToast = toast.loading("Confirming transaction on SCAI Mainnet...");
       await transaction.wait();
-      alert("Successfully purchased NFT!");
+      toast.dismiss(loadingToast);
+      toast.success("Provenance ownership verified. Asset transferred.");
       loadNFTs();
     } catch (error) {
       console.error("Error buying NFT:", error);
-      alert("Error purchasing NFT. Check if you have sufficient SCAI for the price and gas.");
+      toast.error("Transaction failed. Verify SCAI balance and gas.");
     }
   }
 
@@ -112,7 +106,6 @@ const Explore = () => {
             <NFTCard 
               key={i} 
               item={nft} 
-              isOwner={nft.isUserSeller} 
               onAction={buyNft} 
             />
           ))}
@@ -123,3 +116,4 @@ const Explore = () => {
 };
 
 export default Explore;
+
