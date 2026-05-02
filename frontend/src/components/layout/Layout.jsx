@@ -33,9 +33,9 @@ const Layout = ({ children }) => {
         }}
       />
       <div className="fixed inset-0 z-0">
-        <ParticleGrid />
+        {/* <ParticleGrid /> */}
       </div>
-      <CursorTrail />
+      {/* <CursorTrail /> */}
       
       <div className="relative z-10 flex flex-col min-h-screen">
         <Navbar />
