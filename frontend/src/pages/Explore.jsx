@@ -136,7 +136,7 @@ const Explore = () => {
       className="py-8 px-4 md:px-0"
     >
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10 border-b border-[#45A29E]/30 pb-6">
-        <h2 className="text-3xl md:text-4xl font-bold text-white uppercase tracking-wide">Explore Market</h2>
+        <h2 className="text-3xl md:text-5xl font-bold text-white uppercase tracking-wide">Explore Market</h2>
         <span className="text-[#45A29E] font-mono text-xs md:text-sm">{nfts.length} Assets Found</span>
       </div>
       

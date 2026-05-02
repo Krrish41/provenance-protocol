@@ -27,7 +27,7 @@ const Navbar = () => {
         </Link>
         
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-12">
           {navLinks.map((link) => (
             <NavLink key={link.path} to={link.path} active={location.pathname === link.path}>
               {link.name}
@@ -173,7 +173,7 @@ const Navbar = () => {
 const NavLink = ({ to, children, active }) => (
   <Link 
     to={to} 
-    className={`transition-colors uppercase tracking-widest text-xs font-bold ${
+    className={`transition-colors uppercase tracking-widest text-base font-bold ${
       active ? 'text-[#66FCF1]' : 'text-[#C5C6C7] hover:text-[#66FCF1]'
     }`}
   >

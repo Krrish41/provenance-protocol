@@ -127,7 +127,7 @@ const Mint = () => {
       transition={{ duration: 0.5 }}
       className="py-8 max-w-2xl mx-auto"
     >
-      <h2 className="text-3xl md:text-4xl font-bold text-white uppercase tracking-wide mb-10 border-b border-[#45A29E]/30 pb-4">Mint New Asset</h2>
+      <h2 className="text-3xl md:text-5xl font-bold text-white uppercase tracking-wide mb-10 border-b border-[#45A29E]/30 pb-4">Mint New Asset</h2>
       
       <div className="bg-[#1e2024]/50 border border-[#45A29E]/30 rounded-xl p-8 backdrop-blur-sm shadow-2xl">
         <div className="space-y-6">

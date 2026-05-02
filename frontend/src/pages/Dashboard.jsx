@@ -137,7 +137,7 @@ const Dashboard = () => {
     >
       <section>
         <div className="flex justify-between items-center mb-10 border-b border-[#45A29E]/30 pb-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-white uppercase tracking-wide">Active Listings</h2>
+          <h2 className="text-3xl md:text-5xl font-bold text-white uppercase tracking-wide">Active Listings</h2>
           <span className="text-[#66FCF1] font-mono text-xs md:text-sm">{listedNfts.length} Assets on Market</span>
         </div>
         
@@ -158,7 +158,7 @@ const Dashboard = () => {
 
       <section>
         <div className="flex justify-between items-center mb-10 border-b border-[#45A29E]/30 pb-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-white uppercase tracking-wide">Personal Holdings</h2>
+          <h2 className="text-3xl md:text-5xl font-bold text-white uppercase tracking-wide">Personal Holdings</h2>
           <span className="text-[#45A29E] font-mono text-xs md:text-sm">{ownedNfts.length} Assets Held</span>
         </div>
         
