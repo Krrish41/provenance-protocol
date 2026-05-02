@@ -37,19 +37,32 @@ const Dashboard = () => {
       const signer = await provider.getSigner();
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
       
-      const [ownedData, marketData] = await Promise.all([
+      const [ownedData, marketData, listedData] = await Promise.all([
         contract.fetchMyNFTs().catch(e => { console.error("fetchMyNFTs failed", e); return []; }),
-        contract.fetchMarketItems().catch(e => { console.error("fetchMarketItems failed", e); return []; })
+        contract.fetchMarketItems().catch(e => { console.error("fetchMarketItems failed", e); return []; }),
+        contract.fetchItemsListed().catch(e => { console.error("fetchItemsListed failed", e); return []; })
       ]);
 
-      const processData = async (data, filterBySeller = false) => {
+      console.log("Dashboard Debug - Raw Data:", { ownedData, marketData, listedData });
+
+      const processData = async (data, isMarketSection = false) => {
         const items = await Promise.all(data.map(async i => {
           try {
             const tokenId = Number(i.tokenId);
-            
-            // If filtering by seller, only include items where seller matches connected address
-            if (filterBySeller && i.seller.toLowerCase() !== address.toLowerCase()) {
-                return null;
+            const seller = i.seller.toLowerCase();
+            const owner = i.owner.toLowerCase();
+            const userAddr = address.toLowerCase();
+
+            // Broad filter: If this is for the "Active Listings" section, 
+            // the user must be the seller and the item must not be sold.
+            if (isMarketSection) {
+                const isUserSeller = seller === userAddr;
+                const isUserOwner = owner === userAddr; // In some contracts, owner remains user until sold
+                const isSold = i.sold;
+
+                if (isSold || (!isUserSeller && !isUserOwner)) {
+                    return null;
+                }
             }
 
             let tokenUri = "";
@@ -74,8 +87,8 @@ const Dashboard = () => {
             return {
               price: formatEther(i.price.toString()),
               tokenId: tokenId,
-              seller: i.seller.toLowerCase(),
-              owner: i.owner.toLowerCase(),
+              seller: seller,
+              owner: owner,
               image: resolveIPFS(meta.data.image || meta.data.imageURL || ""),
               name: meta.data.name || `Network Asset #${tokenId}`,
               description: meta.data.description || 'Provenance synchronization in progress...',
@@ -88,10 +101,20 @@ const Dashboard = () => {
         return items.filter(item => item !== null);
       };
 
+      // Combine marketData and listedData to be absolutely sure we catch the items
+      const combinedMarketData = [...marketData];
+      listedData.forEach(item => {
+          if (!combinedMarketData.find(m => Number(m.tokenId) === Number(item.tokenId))) {
+              combinedMarketData.push(item);
+          }
+      });
+
       const [owned, listed] = await Promise.all([
         processData(ownedData),
-        processData(marketData, true) // Pass true to filter by current user's seller address
+        processData(combinedMarketData, true) 
       ]);
+
+      console.log("Dashboard Debug - Processed:", { owned, listed });
 
       setOwnedNfts(owned);
       setListedNfts(listed);
