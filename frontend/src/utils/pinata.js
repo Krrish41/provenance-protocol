@@ -13,7 +13,7 @@ export const uploadFileToIPFS = async (file) => {
                 'Content-Type': `multipart/form-data;`,
             }
         });
-        return `https://gateway.pinata.cloud/ipfs/${res.data.IpfsHash}`;
+        return `https://salmon-blank-leopon-846.mypinata.cloud/ipfs/${res.data.IpfsHash}`;
     } catch (error) {
         console.error("Error uploading file to Pinata:", error);
         throw error;
@@ -28,7 +28,7 @@ export const uploadJSONToIPFS = async (JSONBody) => {
                 'Content-Type': 'application/json'
             }
         });
-        return `https://gateway.pinata.cloud/ipfs/${res.data.IpfsHash}`;
+        return `https://salmon-blank-leopon-846.mypinata.cloud/ipfs/${res.data.IpfsHash}`;
     } catch (error) {
         console.error("Error uploading JSON to Pinata:", error);
         throw error;

@@ -26,15 +26,19 @@ export const scaiMainnet = defineChain({
   },
 });
 
-import { metaMaskWallet, rainbowWallet } from '@rainbow-me/rainbowkit/wallets';
+import { metaMaskWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
 
 const config = getDefaultConfig({
   appName: 'Provenance Protocol',
-  projectId: 'YOUR_PROJECT_ID', // Replaced with a generic placeholder for testing
+  projectId: '8952458467431e676a161864115f5d81', // Placeholder projectId to prevent crashes. Get yours at cloud.walletconnect.com
   chains: [scaiMainnet],
   wallets: [{
     groupName: 'Recommended',
-    wallets: [metaMaskWallet, rainbowWallet],
+    wallets: [
+      metaMaskWallet, 
+      rainbowWallet, 
+      walletConnectWallet
+    ],
   }],
   ssr: false,
 });

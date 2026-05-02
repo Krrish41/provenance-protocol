@@ -1,9 +1,5 @@
 const gateways = [
-  'https://gateway.pinata.cloud/ipfs/',
-  'https://ipfs.io/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/',
-  'https://dweb.link/ipfs/',
-  'https://nftstorage.link/ipfs/'
+  'https://salmon-blank-leopon-846.mypinata.cloud/ipfs/'
 ];
 
 /**

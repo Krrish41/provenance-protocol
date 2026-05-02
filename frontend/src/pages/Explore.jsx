@@ -51,19 +51,13 @@ const Explore = () => {
           
           let meta = null;
           try {
-            const fetchPromise = (url) => axios.get(url, { timeout: 5000 }).then(res => {
-              if (res.data && (res.data.image || res.data.name)) return res.data;
-              throw new Error("Invalid IPFS data");
-            });
-            // Race multiple gateways for the fastest metadata response
-            meta = await Promise.any(gateways.slice(0, 3).map(fetchPromise));
-          } catch (e) {
-            // Try remaining gateways if the first 3 failed
-            try {
-              meta = await Promise.any(gateways.slice(3).map(fetchPromise));
-            } catch (err) {
-              console.warn("Metadata sync failed for", tokenId);
+            const url = resolveIPFS(tokenUri);
+            const res = await axios.get(url, { timeout: 10000 });
+            if (res.data && (res.data.image || res.data.name)) {
+              meta = res.data;
             }
+          } catch (e) {
+            console.warn("Metadata sync failed for", tokenId);
           }
 
           if (!meta) {
