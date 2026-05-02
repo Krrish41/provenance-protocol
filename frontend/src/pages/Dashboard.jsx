@@ -37,84 +37,71 @@ const Dashboard = () => {
       const signer = await provider.getSigner();
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
       
-      const [ownedData, marketData, listedData] = await Promise.all([
+      const [ownedData, marketData] = await Promise.all([
         contract.fetchMyNFTs().catch(e => { console.error("fetchMyNFTs failed", e); return []; }),
-        contract.fetchMarketItems().catch(e => { console.error("fetchMarketItems failed", e); return []; }),
-        contract.fetchItemsListed().catch(e => { console.error("fetchItemsListed failed", e); return []; })
+        contract.fetchMarketItems().catch(e => { console.error("fetchMarketItems failed", e); return []; })
       ]);
 
-      console.log("Dashboard Debug - Raw Data:", { ownedData, marketData, listedData });
+      const userAddr = address.toLowerCase();
 
-      const processData = async (data, isMarketSection = false) => {
-        const items = await Promise.all(data.map(async i => {
+      const processItem = async (i) => {
+        try {
+          const tokenId = Number(i.tokenId);
+          const seller = i.seller.toLowerCase();
+          const owner = i.owner.toLowerCase();
+          
+          let tokenUri = "";
           try {
-            const tokenId = Number(i.tokenId);
-            const seller = i.seller.toLowerCase();
-            const owner = i.owner.toLowerCase();
-            const userAddr = address.toLowerCase();
-
-            // Broad filter: If this is for the "Active Listings" section, 
-            // the user must be the seller and the item must not be sold.
-            if (isMarketSection) {
-                const isUserSeller = seller === userAddr;
-                const isUserOwner = owner === userAddr; // In some contracts, owner remains user until sold
-                const isSold = i.sold;
-
-                if (isSold || (!isUserSeller && !isUserOwner)) {
-                    return null;
-                }
-            }
-
-            let tokenUri = "";
-            try {
-              tokenUri = await contract.tokenURI(i.tokenId);
-            } catch (e) {
-              console.warn("Could not fetch tokenURI for", tokenId);
-            }
-
-            let meta = { data: { name: `Network Asset #${tokenId}`, description: 'Metadata pending protocol verification.', image: '' } };
-            
-            if (tokenUri) {
-              try {
-                const url = resolveIPFS(tokenUri);
-                const res = await axios.get(url, { timeout: 8000 });
-                if (res.data) meta = res;
-              } catch (e) {
-                console.warn("Metadata timeout for", tokenId);
-              }
-            }
-
-            return {
-              price: formatEther(i.price.toString()),
-              tokenId: tokenId,
-              seller: seller,
-              owner: owner,
-              image: resolveIPFS(meta.data.image || meta.data.imageURL || ""),
-              name: meta.data.name || `Network Asset #${tokenId}`,
-              description: meta.data.description || 'Provenance synchronization in progress...',
-            };
-          } catch (err) {
-            console.error("Error processing item", i.tokenId, err);
-            return null;
+            tokenUri = await contract.tokenURI(i.tokenId);
+          } catch (e) {
+            console.warn("Could not fetch tokenURI for", tokenId);
           }
-        }));
-        return items.filter(item => item !== null);
+
+          let meta = { data: { name: `Network Asset #${tokenId}`, description: 'Metadata pending protocol verification.', image: '' } };
+          
+          if (tokenUri) {
+            try {
+              const url = resolveIPFS(tokenUri);
+              const res = await axios.get(url, { timeout: 8000 });
+              if (res.data) meta = res;
+            } catch (e) {
+              console.warn("Metadata timeout for", tokenId);
+            }
+          }
+
+          return {
+            price: formatEther(i.price.toString()),
+            tokenId: tokenId,
+            seller: seller,
+            owner: owner,
+            sold: i.sold,
+            image: resolveIPFS(meta.data.image || meta.data.imageURL || ""),
+            name: meta.data.name || `Network Asset #${tokenId}`,
+            description: meta.data.description || 'Provenance synchronization in progress...',
+          };
+        } catch (err) {
+          console.error("Error processing item", i.tokenId, err);
+          return null;
+        }
       };
 
-      // Combine marketData and listedData to be absolutely sure we catch the items
-      const combinedMarketData = [...marketData];
-      listedData.forEach(item => {
-          if (!combinedMarketData.find(m => Number(m.tokenId) === Number(item.tokenId))) {
-              combinedMarketData.push(item);
-          }
+      // 1. Process Personal Holdings (Items user has bought or owns)
+      const processedOwned = await Promise.all(ownedData.map(i => processItem(i)));
+      const owned = processedOwned.filter(item => item !== null);
+
+      // 2. Process Active Listings (Items user is selling in the market)
+      const processedMarket = await Promise.all(marketData.map(i => processItem(i)));
+      const listed = processedMarket.filter(item => 
+        item !== null && 
+        (item.seller === userAddr) && 
+        !item.sold
+      );
+
+      console.log("Dashboard Sync Complete:", { 
+        address: userAddr,
+        holdingsCount: owned.length, 
+        listingsCount: listed.length 
       });
-
-      const [owned, listed] = await Promise.all([
-        processData(ownedData),
-        processData(combinedMarketData, true) 
-      ]);
-
-      console.log("Dashboard Debug - Processed:", { owned, listed });
 
       setOwnedNfts(owned);
       setListedNfts(listed);
