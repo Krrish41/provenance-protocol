@@ -167,18 +167,17 @@ const Navbar = () => {
               <div className="pt-4 border-t border-[#45A29E]/10">
                 {isConnected ? (
                   <div className="flex flex-col gap-3">
-                    <div className="bg-[#1e2024] border border-[#45A29E]/30 p-4 rounded flex flex-col gap-2 items-center">
-                      <span className="text-[#66FCF1] font-mono text-sm">{formatAddress(address)}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white font-mono text-xl font-bold">{formatBalance(balance)}</span>
-                        <span className="text-[#45A29E] font-mono text-xs uppercase tracking-widest">SCAI Available</span>
+                    <div className="flex flex-col p-4 rounded-md border border-[#45A29E]/30 bg-[#0B0C10]/80 backdrop-blur-sm w-full mb-3">
+                      <div className="text-xs font-mono text-[#C5C6C7] mb-1">{formatAddress(address)}</div>
+                      <div className="text-lg font-bold text-[#66FCF1] tracking-wide">
+                        {formatBalance(balance)} <span className="text-xs text-[#45A29E] font-normal uppercase">SCAI</span>
                       </div>
                     </div>
                     <button 
                       onClick={() => { disconnect(); closeMenu(); }}
-                      className="w-full bg-[#1e2024] border border-red-500/50 text-red-400 py-4 rounded text-base font-mono font-bold flex items-center justify-center gap-2"
+                      className="w-full flex items-center justify-center py-3 rounded-md text-sm tracking-widest uppercase font-semibold text-[#ff4d4d] bg-[#ff4d4d]/5 border border-[#ff4d4d]/20 transition-all active:bg-[#ff4d4d]/10"
                     >
-                      <LogOut size={20} />
+                      <LogOut size={18} className="mr-2" />
                       Disconnect
                     </button>
                   </div>

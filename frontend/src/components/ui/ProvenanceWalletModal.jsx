@@ -148,12 +148,16 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  // Filter out generic WalletConnect from the Left Pane list
+  // Filter out generic WalletConnect and Injected from the Left Pane list
   const visibleConnectors = connectors
     .filter((connector, index, self) => 
       index === self.findIndex((c) => c.name === connector.name)
     )
-    .filter(c => c.id !== 'walletConnect');
+    .filter(c => 
+      c.id !== 'walletConnect' && 
+      c.id !== 'injected' && 
+      c.name.toLowerCase() !== 'injected'
+    );
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
