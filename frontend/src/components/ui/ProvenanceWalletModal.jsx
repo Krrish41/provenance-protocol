@@ -1,25 +1,34 @@
-import { useState, useEffect } from 'react';
-import { useConnect, useAccount } from 'wagmi';
+import { useState, useEffect, useRef } from 'react';
+import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, Download, ExternalLink, ShieldCheck, Wallet, AlertCircle } from 'lucide-react';
+import { X, Loader2, Download, ExternalLink, ShieldCheck, Wallet, AlertCircle, Smartphone, Globe } from 'lucide-react';
 
 const UI_STATES = {
   DEFAULT: 'DEFAULT',
   INSTALL_METAMASK: 'INSTALL_METAMASK',
   INSTALL_RAINBOW: 'INSTALL_RAINBOW',
   CONNECTING: 'CONNECTING',
-  ERROR: 'ERROR'
+  ERROR: 'ERROR',
+  MOBILE_INSTALL_REQUIRED: 'MOBILE_INSTALL_REQUIRED',
+  IN_APP_BROWSER: 'IN_APP_BROWSER'
 };
 
 const ProvenanceWalletModal = ({ isOpen, onClose }) => {
   const { connect, connectors, error: connectError } = useConnect();
   const { isConnecting, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
   const [uiState, setUiState] = useState(UI_STATES.DEFAULT);
   const [selectedConnector, setSelectedConnector] = useState(null);
+  const connectionTimeout = useRef(null);
+
+  const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const isInAppBrowser = typeof navigator !== 'undefined' && /Twitter|Instagram|FBAV|Telegram/i.test(navigator.userAgent);
+  const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   // Auto-close on successful connection
   useEffect(() => {
     if (isConnected) {
+      if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
       onClose();
     }
   }, [isConnected, onClose]);
@@ -27,36 +36,64 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
   // Handle Wagmi connection errors
   useEffect(() => {
     if (connectError) {
+      if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
       setUiState(UI_STATES.ERROR);
     }
   }, [connectError]);
 
   // Handle connecting status from Wagmi
   useEffect(() => {
-    if (isConnecting && uiState !== UI_STATES.INSTALL_METAMASK && uiState !== UI_STATES.INSTALL_RAINBOW) {
+    if (isConnecting && 
+        ![UI_STATES.INSTALL_METAMASK, UI_STATES.INSTALL_RAINBOW, UI_STATES.MOBILE_INSTALL_REQUIRED].includes(uiState)) {
       setUiState(UI_STATES.CONNECTING);
     }
   }, [isConnecting, uiState]);
 
-  const handleConnectorClick = (connector) => {
+  const handleConnectorClick = async (connector) => {
     setSelectedConnector(connector);
-    
-    const isMetaMask = !!window.ethereum?.isMetaMask;
-    const isRainbow = !!window.ethereum?.isRainbow;
-    const name = connector.name.toLowerCase();
+    if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
 
-    if (name.includes('metamask')) {
-      if (!isMetaMask) {
-        setUiState(UI_STATES.INSTALL_METAMASK);
-        return;
-      }
+    // 1. In-App Browser Trap Detection
+    if (isMobile && isInAppBrowser) {
+      setUiState(UI_STATES.IN_APP_BROWSER);
+      return;
     }
 
-    if (name.includes('rainbow')) {
-      if (!isRainbow) {
-        setUiState(UI_STATES.INSTALL_RAINBOW);
-        return;
+    const name = connector.name.toLowerCase();
+
+    // 2. Mobile Deep-Link Logic
+    if (isMobile) {
+      // Aggressively clear stale sessions
+      disconnect();
+      
+      try {
+        setUiState(UI_STATES.CONNECTING);
+        connect({ connector });
+        
+        // 3. Installation Fallback Heartbeat
+        connectionTimeout.current = setTimeout(() => {
+          if (!isConnected) {
+            setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
+          }
+        }, 2500);
+      } catch (err) {
+        setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
       }
+      return;
+    }
+
+    // 4. Desktop Extension Detection
+    const isMetaMask = !!window.ethereum?.isMetaMask;
+    const isRainbow = !!window.ethereum?.isRainbow;
+
+    if (name.includes('metamask') && !isMetaMask) {
+      setUiState(UI_STATES.INSTALL_METAMASK);
+      return;
+    }
+
+    if (name.includes('rainbow') && !isRainbow) {
+      setUiState(UI_STATES.INSTALL_RAINBOW);
+      return;
     }
 
     try {
@@ -70,6 +107,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
   // Reset modal state on open/close
   useEffect(() => {
     if (!isOpen) {
+      if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
       setUiState(UI_STATES.DEFAULT);
       setSelectedConnector(null);
     }
@@ -82,7 +120,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
   );
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -94,17 +132,17 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="relative bg-[#0B0C10] border border-[#45A29E] rounded-lg w-full max-w-2xl flex min-h-[460px] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+        className="relative bg-[#0B0C10] border border-[#45A29E] rounded-lg w-full max-w-2xl flex flex-col md:flex-row min-h-[460px] max-h-[90vh] overflow-y-auto shadow-[0_0_50px_rgba(0,0,0,0.5)]"
       >
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 text-[#45A29E] hover:text-[#66FCF1] transition-colors z-10"
+          className="absolute top-4 right-4 text-[#45A29E] hover:text-[#66FCF1] transition-colors z-20"
         >
           <X size={24} />
         </button>
 
-        {/* Left Pane */}
-        <div className="w-1/3 border-r border-[#45A29E]/30 p-6 flex flex-col gap-4">
+        {/* Left Pane - Provider List */}
+        <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-[#45A29E]/30 p-6 flex flex-col gap-4">
           <h3 className="text-[#66FCF1] font-mono text-xs uppercase tracking-[0.2em] mb-4">Select Provider</h3>
           <div className="flex flex-col gap-2">
             {uniqueConnectors.map((connector) => (
@@ -124,7 +162,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
               </button>
             ))}
           </div>
-          <div className="mt-auto pt-6 border-t border-[#45A29E]/10">
+          <div className="mt-auto pt-6 border-t border-[#45A29E]/10 hidden md:block">
             <div className="flex items-center gap-2 text-[#45A29E] text-[10px] font-mono uppercase tracking-widest">
               <ShieldCheck size={12} />
               Secure Auth
@@ -132,8 +170,8 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Right Pane with Mutually Exclusive States */}
-        <div className="flex-1 p-10 flex flex-col items-center justify-center text-center relative bg-[#0B0C10]">
+        {/* Right Pane - Dynamic States */}
+        <div className="flex-1 p-6 md:p-10 flex flex-col items-center justify-center text-center relative bg-[#0B0C10]">
           <AnimatePresence mode="wait">
             {uiState === UI_STATES.DEFAULT ? (
               <motion.div 
@@ -141,16 +179,65 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="flex flex-col items-center gap-4"
+                className="flex flex-col items-center gap-4 py-8 md:py-0"
               >
                 <div className="w-16 h-16 rounded-full border-2 border-dashed border-[#45A29E]/30 flex items-center justify-center text-[#45A29E]">
                   <Wallet size={32} />
                 </div>
                 <p className="text-[#45A29E] font-mono text-sm max-w-[200px] leading-relaxed">
-                  Select a provider from the menu to authenticate.
+                  {isMobile ? 'Tap a provider to open your wallet app.' : 'Select a provider from the menu to authenticate.'}
                 </p>
               </motion.div>
-            ) : uiState === UI_STATES.INSTALL_METAMASK || uiState === UI_STATES.INSTALL_RAINBOW ? (
+            ) : uiState === UI_STATES.IN_APP_BROWSER ? (
+              <motion.div 
+                key="in-app"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center gap-6"
+              >
+                <div className="w-20 h-20 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-500 border border-orange-500/30">
+                  <Globe size={40} />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-orange-500 text-xl font-bold uppercase tracking-tight">In-App Browser Detected</h2>
+                  <p className="text-[#C5C6C7] text-sm max-w-[280px]">
+                    Social browsers block secure wallet links. Please tap the <span className="font-bold text-white">(•••)</span> menu and select <span className="font-bold text-white">"Open in System Browser"</span> to continue.
+                  </p>
+                </div>
+              </motion.div>
+            ) : uiState === UI_STATES.MOBILE_INSTALL_REQUIRED ? (
+              <motion.div 
+                key="mobile-install"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center gap-6"
+              >
+                <div className="w-20 h-20 bg-[#66FCF1]/10 rounded-2xl flex items-center justify-center text-[#66FCF1] border border-[#66FCF1]/30">
+                  <Smartphone size={40} />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-[#C5C6C7] text-xl font-bold">{selectedConnector?.name} Not Found</h2>
+                  <p className="text-[#45A29E] text-sm max-w-[280px]">To connect, please install the official mobile app for your device.</p>
+                </div>
+                <div className="flex flex-col gap-3 w-full max-w-[240px]">
+                  <a 
+                    href={isIOS ? 'https://apps.apple.com/app/metamask/id1438144202' : 'https://play.google.com/store/apps/details?id=io.metamask'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="provenance-btn !py-3 flex items-center justify-center gap-2"
+                  >
+                    <Download size={18} />
+                    {isIOS ? 'App Store' : 'Google Play'}
+                  </a>
+                  <button 
+                    onClick={() => setUiState(UI_STATES.DEFAULT)}
+                    className="text-[#45A29E] text-xs font-mono hover:text-[#66FCF1]"
+                  >
+                    Try Another Wallet
+                  </button>
+                </div>
+              </motion.div>
+            ) : (uiState === UI_STATES.INSTALL_METAMASK || uiState === UI_STATES.INSTALL_RAINBOW) ? (
               <motion.div 
                 key="install"
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -187,7 +274,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                   </button>
                 </div>
               </motion.div>
-            ) : uiState === UI_STATES.ERROR || connectError ? (
+            ) : uiState === UI_STATES.ERROR || (connectError && uiState !== UI_STATES.MOBILE_INSTALL_REQUIRED) ? (
               <motion.div 
                 key="error"
                 initial={{ opacity: 0 }}
@@ -229,8 +316,12 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-white text-lg font-mono animate-pulse uppercase tracking-wider">Awaiting Signature...</h3>
-                  <p className="text-[#45A29E] text-xs">Confirm the connection request in your wallet.</p>
+                  <h3 className="text-white text-lg font-mono animate-pulse uppercase tracking-wider">
+                    {isMobile ? 'Opening Wallet...' : 'Awaiting Signature...'}
+                  </h3>
+                  <p className="text-[#45A29E] text-xs">
+                    {isMobile ? 'Please approve the connection in your wallet app.' : 'Confirm the connection request in your wallet.'}
+                  </p>
                 </div>
               </motion.div>
             ) : null}
