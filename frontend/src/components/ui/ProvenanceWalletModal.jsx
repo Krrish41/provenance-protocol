@@ -136,44 +136,50 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
         document.addEventListener('visibilitychange', handleVisibilityChange, { once: true });
         
         const name = selectedConnector?.name.toLowerCase() || "";
-        console.log("Mobile Deep Link URI captured:", uri);
+        console.log(`[Provenance] Captured URI for ${name}:`, uri);
         
-        // Use a mix of Universal Links and Custom Schemes for maximum compatibility
+        // Strategy: 
+        // 1. Direct Wallet Scheme (most reliable for registered apps)
+        // 2. Universal Link fallback (for OS-level routing)
+        // 3. Generic wc: fallback (last resort)
+        
         let deepLink = uri;
         if (name.includes('metamask')) {
-          // Attempt custom scheme first, then Universal Link
           deepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
-          // Fallback to Universal Link if the above fails (handled by OS or timer)
           setTimeout(() => {
             if (document.visibilityState === 'visible') {
+              console.log("[Provenance] Falling back to MetaMask Universal Link");
               window.location.href = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
             }
-          }, 500);
+          }, 800);
         } else if (name.includes('rainbow')) {
           deepLink = `rainbow://wc?uri=${encodeURIComponent(uri)}`;
           setTimeout(() => {
             if (document.visibilityState === 'visible') {
+              console.log("[Provenance] Falling back to Rainbow Universal Link");
               window.location.href = `https://rnbwapp.com/wc?uri=${encodeURIComponent(uri)}`;
             }
-          }, 500);
+          }, 800);
+        } else {
+          deepLink = uri; // Generic wc:
         }
 
         window.location.href = deepLink;
 
-        // Start the fallback timeout (4s for slower deep-link handling)
+        // Fallback timeout
         connectionTimeout.current = setTimeout(() => {
           document.removeEventListener('visibilitychange', handleVisibilityChange);
           if (document.visibilityState === 'visible' && !isConnected) {
-            console.warn("Deep link failed to hide browser after 4s");
+            console.warn("[Provenance] Deep link timeout - App may not be installed or rejected link");
             setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
           }
-        }, 4000);
+        }, 5000); // Increased to 5s to account for OS delays
       };
 
-      // Subscribe to both possible event names (v1 vs v2 nuances)
+      // Subscribe to display_uri
       provider.once('display_uri', onDisplayUri);
       
-      // Also try message event which is common in Wagmi v2 wrappers
+      // Also listen to message event (Wagmi v2 specific)
       const onMessage = ({ type, data }) => {
         if (type === 'display_uri') {
           onDisplayUri(data);
@@ -182,10 +188,11 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       };
       wcConnector.on('message', onMessage);
 
-      // Finally, trigger the connection
+      // Trigger connection
+      console.log("[Provenance] Initiating connection via WalletConnect...");
       connect({ connector: wcConnector });
     } catch (err) {
-      console.error("Mobile connection trigger failed:", err);
+      console.error("[Provenance] Mobile connection exception:", err);
       setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
     }
   };

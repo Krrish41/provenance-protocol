@@ -33,7 +33,13 @@ const config = createConfig({
     injected({ target: 'rainbow' }),
     walletConnect({ 
       projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '3fcc6b4468bd93359a443e62f559609c',
-      showQrModal: false // We use our own UI/deep-links
+      showQrModal: false,
+      metadata: {
+        name: 'Provenance Marketplace',
+        description: 'SCAI NFT Marketplace',
+        url: typeof window !== 'undefined' ? window.location.origin : 'https://provenance.protocol',
+        icons: ['https://provenance.protocol/logo.png']
+      }
     }),
   ],
   transports: {
