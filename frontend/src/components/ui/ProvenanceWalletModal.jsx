@@ -126,22 +126,10 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       return;
     }
 
-    // Explicitly target the correct injected connector
-    const targetConnector = connectors.find(c => 
-      c.id === connector.id || 
-      (c.id === 'injected' && c.name.toLowerCase() === name)
-    );
-
-    if (!targetConnector) {
-      console.error("[Provenance] Desktop connector mismatch");
-      setUiState(UI_STATES.ERROR);
-      return;
-    }
-
     try {
       setUiState(UI_STATES.CONNECTING);
-      // Trigger connection directly. Wagmi handles session handoffs.
-      connect({ connector: targetConnector });
+      // Use the connector object directly from the selection
+      connect({ connector });
     } catch (err) {
       console.error("[Provenance] Desktop connect sync error:", err);
       if (err.name === 'UserRejectedRequestError' || err?.code === 4001) {
