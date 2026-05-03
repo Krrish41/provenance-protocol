@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BrowserProvider, Contract, formatEther } from 'ethers';
+import { BrowserProvider, JsonRpcProvider, Contract, formatEther } from 'ethers';
 import axios from 'axios';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import NFTCard from '../components/ui/NFTCard';
@@ -28,35 +28,46 @@ const Dashboard = () => {
 
   async function loadNFTs() {
     try {
-      if (!window.ethereum) {
-          setLoading(false);
-          return;
-      }
       setLoading(true);
-      const provider = new BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
       
-      const [ownedData, marketData] = await Promise.all([
-        contract.fetchMyNFTs().catch(e => { console.error("fetchMyNFTs failed", e); return []; }),
-        contract.fetchMarketItems().catch(e => { console.error("fetchMarketItems failed", e); return []; })
+      // Use the same stable RPC as Explore.jsx for reliable data fetching
+      const rpcUrl = import.meta.env.VITE_SCAI_RPC_URL || "https://34.rpc.thirdweb.com";
+      const rpcProvider = new JsonRpcProvider(rpcUrl);
+      const rpcContract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, rpcProvider);
+      
+      console.log("Connected Chain:", chain?.id);
+      console.log("Target Contract:", MARKETPLACE_ADDRESS);
+      console.log("Connected Address:", address);
+
+      // Fetch data using both specialized methods and global market list for redundancy
+      const [rawOwned, rawMarket] = await Promise.all([
+        rpcContract.fetchMyNFTs({ from: address }).catch(e => { 
+          console.warn("Specialized fetchMyNFTs failed, will fallback to manual filter", e); 
+          return []; 
+        }),
+        rpcContract.fetchMarketItems().catch(e => { 
+          console.error("fetchMarketItems failed", e); 
+          return []; 
+        })
       ]);
 
-      console.log("Connected Chain:", chain?.id);
-      console.log("Connected Address:", address);
-      console.log("RAW DASHBOARD DATA:", { owned: ownedData, market: marketData });
+      console.log("RAW DATA RECEIVED:", { 
+        ownedCount: rawOwned?.length || 0, 
+        marketCount: rawMarket?.length || 0 
+      });
 
       const userAddr = address.toLowerCase();
 
       const processItem = async (i) => {
         try {
+          if (!i || !i.tokenId) return null;
           const tokenId = Number(i.tokenId);
           const seller = i.seller ? i.seller.toLowerCase() : "";
           const owner = i.owner ? i.owner.toLowerCase() : "";
           
           let tokenUri = "";
           try {
-            tokenUri = await contract.tokenURI(i.tokenId);
+            tokenUri = await rpcContract.tokenURI(i.tokenId);
           } catch (e) {
             console.warn("Could not fetch tokenURI for", tokenId);
           }
@@ -84,43 +95,49 @@ const Dashboard = () => {
             description: meta.data.description || 'Provenance synchronization in progress...',
           };
         } catch (err) {
-          console.error("Error processing item", i.tokenId, err);
+          console.error("Error processing item", i?.tokenId, err);
           return null;
         }
       };
 
       // Process all data with allSettled for maximum isolation
       const [ownedResults, marketResults] = await Promise.all([
-        Promise.allSettled(ownedData.map(i => processItem(i))),
-        Promise.allSettled(marketData.map(i => processItem(i)))
+        Promise.allSettled(rawOwned.map(i => processItem(i))),
+        Promise.allSettled(rawMarket.map(i => processItem(i)))
       ]);
 
       const processedOwned = ownedResults
-        .filter(r => r.status === 'fulfilled')
+        .filter(r => r.status === 'fulfilled' && r.value !== null)
         .map(r => r.value);
         
       const processedMarket = marketResults
-        .filter(r => r.status === 'fulfilled')
+        .filter(r => r.status === 'fulfilled' && r.value !== null)
         .map(r => r.value);
 
-      // 1. Personal Holdings: Items where user is owner AND it's not currently listed in market
-      // (Or items returned by fetchMyNFTs)
-      const owned = processedOwned.filter(item => item !== null);
+      // REDUNDANCY CHECK: If specialized owned fetch failed, we find user's items in the market list
+      // This ensures that even if msg.sender logic fails at the RPC level, we still see our items
+      const manuallyFilteredOwned = processedMarket.filter(item => item.owner === userAddr);
+      
+      // Final list of owned NFTs (merging both sources and removing duplicates)
+      const combinedOwned = [...processedOwned];
+      manuallyFilteredOwned.forEach(m => {
+        if (!combinedOwned.find(o => o.tokenId === m.tokenId)) {
+          combinedOwned.push(m);
+        }
+      });
 
-      // 2. Active Listings: Items from marketData where user is EITHER seller or owner
+      // 2. Active Listings: Items from marketData where user is the seller
       const listed = processedMarket.filter(item => {
-        if (!item) return false;
-        const isUserRelated = (item.seller === userAddr || item.owner === userAddr);
-        return isUserRelated && !item.sold;
+        const isUserSeller = item.seller === userAddr;
+        return isUserSeller && !item.sold;
       });
 
-      console.log("Dashboard Refresh:", { 
-        user: userAddr,
-        foundInHoldings: owned.length, 
-        foundInMarket: listed.length 
+      console.log("Final Dashboard State:", { 
+        holdings: combinedOwned.length, 
+        listings: listed.length 
       });
 
-      setOwnedNfts(owned);
+      setOwnedNfts(combinedOwned);
       setListedNfts(listed);
     } catch (error) {
       console.error("Critical error loading Dashboard:", error);
