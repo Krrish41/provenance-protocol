@@ -29,6 +29,7 @@ export const scaiMainnet = defineChain({
 const config = createConfig({
   chains: [scaiMainnet],
   connectors: [
+    injected(), 
     injected({ target: 'metaMask' }),
     injected({ target: 'rainbow' }),
     walletConnect({ 

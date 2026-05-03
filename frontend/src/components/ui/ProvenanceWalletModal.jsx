@@ -34,6 +34,23 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
     }
   }, [isConnected, onClose]);
 
+  // Aggressive In-App Browser Auto-Connect
+  useEffect(() => {
+    if (!isConnected && typeof window !== 'undefined' && window.ethereum) {
+      // Find the injected connector (generic or specific)
+      const injectedConnector = connectors.find(c => 
+        c.id === 'injected' || 
+        c.name.toLowerCase().includes('metamask') || 
+        c.name.toLowerCase().includes('rainbow')
+      );
+
+      if (injectedConnector) {
+        console.log("[Provenance] Web3 Browser detected. Auto-connecting...");
+        connect({ connector: injectedConnector });
+      }
+    }
+  }, [isConnected, connectors, connect]);
+
   // Handle Wagmi connection errors
   useEffect(() => {
     if (connectError) {
