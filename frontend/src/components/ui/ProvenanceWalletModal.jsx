@@ -54,6 +54,11 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
   // Handle Wagmi connection errors
   useEffect(() => {
     if (connectError) {
+      // Ignore non-fatal "already connected" errors on desktop
+      if (connectError.message?.includes('Connector already connected')) {
+        return;
+      }
+
       if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
       
       const isUserRejection = 
@@ -95,12 +100,13 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       return;
     }
 
+    // 2. MOBILE BRANCH: Just change UI to action required
     if (isMobile) {
-      // Direct DApp Redirect Flow - No pre-fetching needed
       setUiState(UI_STATES.MOBILE_ACTION_REQUIRED);
       return;
     }
 
+    // 3. DESKTOP BRANCH: Direct Extension Injection
     const name = connector.name.toLowerCase();
 
     // Desktop Extension Detection
@@ -119,9 +125,12 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
 
     try {
       setUiState(UI_STATES.CONNECTING);
+      disconnect(); // CRITICAL: Clear stale desktop sessions before new injection
       connect({ connector });
     } catch (err) {
-      setUiState(UI_STATES.ERROR);
+      if (!err.message?.includes('already connected')) {
+        setUiState(UI_STATES.ERROR);
+      }
     }
   };
 
