@@ -20,6 +20,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
   const { disconnect } = useDisconnect();
   const [uiState, setUiState] = useState(UI_STATES.DEFAULT);
   const [selectedConnector, setSelectedConnector] = useState(null);
+  const [wcUri, setWcUri] = useState('');
   const connectionTimeout = useRef(null);
 
   const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -45,7 +46,6 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
         connectError.message?.toLowerCase().includes('user denied');
 
       if (isUserRejection) {
-        // If the user rejected, take them back to the action screen instead of showing a generic failure
         if (isMobile) {
           setUiState(UI_STATES.MOBILE_ACTION_REQUIRED);
         } else {
@@ -79,8 +79,40 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       return;
     }
 
+    // 2. Mobile Pre-Fetching Architecture
     if (isMobile) {
       setUiState(UI_STATES.MOBILE_ACTION_REQUIRED);
+      setWcUri(''); // Reset URI state
+      
+      const wcConnector = connectors.find(c => c.id === 'walletConnect');
+      if (wcConnector) {
+        disconnect(); // Wipe stale sessions
+        
+        try {
+          const provider = await wcConnector.getProvider();
+          
+          // Unified URI capture
+          const handleUri = (uri) => {
+            console.log("[Provenance] URI Pre-fetched:", uri);
+            setWcUri(uri);
+          };
+
+          provider.once('display_uri', handleUri);
+          
+          const onMessage = ({ type, data }) => {
+            if (type === 'display_uri') {
+              handleUri(data);
+              wcConnector.off('message', onMessage);
+            }
+          };
+          wcConnector.on('message', onMessage);
+
+          // Initiate background connection
+          connect({ connector: wcConnector });
+        } catch (err) {
+          console.error("[Provenance] Background WC init failed:", err);
+        }
+      }
       return;
     }
 
@@ -108,93 +140,16 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const triggerMobileConnection = async () => {
-    disconnect();
-    
-    const wcConnector = connectors.find(c => c.id === 'walletConnect');
-    if (!wcConnector) {
-      console.error("WalletConnect connector not found");
-      return setUiState(UI_STATES.ERROR);
+  const getMobileDeepLink = () => {
+    if (!wcUri) return '#';
+    const name = selectedConnector?.name.toLowerCase() || "";
+    if (name.includes('metamask')) {
+      return `metamask://wc?uri=${encodeURIComponent(wcUri)}`;
     }
-
-    // Strict Visibility Handler: Clear timeout if the app actually opens
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && connectionTimeout.current) {
-        clearTimeout(connectionTimeout.current);
-        connectionTimeout.current = null;
-        console.log("App handoff detected via Visibility API");
-      }
-    };
-
-    try {
-      setUiState(UI_STATES.CONNECTING);
-      
-      const provider = await wcConnector.getProvider();
-      
-      // Captured URI handler
-      const onDisplayUri = (uri) => {
-        document.addEventListener('visibilitychange', handleVisibilityChange, { once: true });
-        
-        const name = selectedConnector?.name.toLowerCase() || "";
-        console.log(`[Provenance] Captured URI for ${name}:`, uri);
-        
-        // Strategy: 
-        // 1. Direct Wallet Scheme (most reliable for registered apps)
-        // 2. Universal Link fallback (for OS-level routing)
-        // 3. Generic wc: fallback (last resort)
-        
-        let deepLink = uri;
-        if (name.includes('metamask')) {
-          deepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
-          setTimeout(() => {
-            if (document.visibilityState === 'visible') {
-              console.log("[Provenance] Falling back to MetaMask Universal Link");
-              window.location.href = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
-            }
-          }, 800);
-        } else if (name.includes('rainbow')) {
-          deepLink = `rainbow://wc?uri=${encodeURIComponent(uri)}`;
-          setTimeout(() => {
-            if (document.visibilityState === 'visible') {
-              console.log("[Provenance] Falling back to Rainbow Universal Link");
-              window.location.href = `https://rnbwapp.com/wc?uri=${encodeURIComponent(uri)}`;
-            }
-          }, 800);
-        } else {
-          deepLink = uri; // Generic wc:
-        }
-
-        window.location.href = deepLink;
-
-        // Fallback timeout
-        connectionTimeout.current = setTimeout(() => {
-          document.removeEventListener('visibilitychange', handleVisibilityChange);
-          if (document.visibilityState === 'visible' && !isConnected) {
-            console.warn("[Provenance] Deep link timeout - App may not be installed or rejected link");
-            setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
-          }
-        }, 5000); // Increased to 5s to account for OS delays
-      };
-
-      // Subscribe to display_uri
-      provider.once('display_uri', onDisplayUri);
-      
-      // Also listen to message event (Wagmi v2 specific)
-      const onMessage = ({ type, data }) => {
-        if (type === 'display_uri') {
-          onDisplayUri(data);
-          wcConnector.off('message', onMessage);
-        }
-      };
-      wcConnector.on('message', onMessage);
-
-      // Trigger connection
-      console.log("[Provenance] Initiating connection via WalletConnect...");
-      connect({ connector: wcConnector });
-    } catch (err) {
-      console.error("[Provenance] Mobile connection exception:", err);
-      setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
+    if (name.includes('rainbow')) {
+      return `rainbow://wc?uri=${encodeURIComponent(wcUri)}`;
     }
+    return wcUri;
   };
 
   // Reset modal state on open/close
@@ -203,6 +158,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
       setUiState(UI_STATES.DEFAULT);
       setSelectedConnector(null);
+      setWcUri('');
     }
   }, [isOpen]);
 
@@ -300,12 +256,22 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                 </div>
                 
                 <div className="flex flex-col gap-3 w-full max-w-[280px]">
-                  <button 
-                    onClick={triggerMobileConnection}
-                    className="w-full bg-[#66FCF1] text-[#0B0C10] py-2.5 px-4 rounded text-sm font-semibold tracking-wide uppercase shadow-[0_0_20px_rgba(102,252,241,0.2)] transition-all active:scale-95"
-                  >
-                    Open {selectedConnector?.name} App
-                  </button>
+                  {wcUri ? (
+                    <a 
+                      href={getMobileDeepLink()}
+                      className="w-full bg-[#66FCF1] text-[#0B0C10] py-2.5 px-4 rounded text-sm font-semibold tracking-wide uppercase text-center shadow-[0_0_20px_rgba(102,252,241,0.2)] transition-all active:scale-95"
+                    >
+                      Open {selectedConnector?.name} App
+                    </a>
+                  ) : (
+                    <button 
+                      disabled
+                      className="w-full bg-[#66FCF1]/20 text-[#66FCF1]/40 py-2.5 px-4 rounded text-sm font-semibold tracking-wide uppercase flex items-center justify-center gap-2 cursor-not-allowed"
+                    >
+                      <Loader2 size={16} className="animate-spin" />
+                      Generating Link...
+                    </button>
+                  )}
                   
                   <a 
                     href={selectedConnector?.name.toLowerCase().includes('metamask') ? 'https://metamask.io/download/' : 'https://rainbow.me/download/'}
@@ -359,10 +325,14 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                     {isIOS ? 'App Store' : 'Google Play'}
                   </a>
                   <button 
-                    onClick={() => setUiState(UI_STATES.MOBILE_ACTION_REQUIRED)}
+                    onClick={() => {
+                      setUiState(UI_STATES.DEFAULT);
+                      setSelectedConnector(null);
+                      setWcUri('');
+                    }}
                     className="text-[#45A29E] text-xs font-mono hover:text-[#66FCF1]"
                   >
-                    Try Again
+                    Back to List
                   </button>
                 </div>
               </motion.div>
@@ -420,6 +390,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                   onClick={() => {
                     setUiState(isMobile ? UI_STATES.MOBILE_ACTION_REQUIRED : UI_STATES.DEFAULT);
                     setSelectedConnector(null);
+                    setWcUri('');
                   }}
                   className="mt-4 text-[#66FCF1] text-xs uppercase tracking-widest hover:underline"
                 >
