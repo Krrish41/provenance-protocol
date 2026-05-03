@@ -13,7 +13,7 @@ import { useWalletModal } from '../context/WalletModalContext';
 import { ShieldAlert } from 'lucide-react';
 
 const Dashboard = () => {
-  const { isConnected, address } = useAccount();
+  const { isConnected, address, chain } = useAccount();
   const { openWalletModal } = useWalletModal();
   const [ownedNfts, setOwnedNfts] = useState([]);
   const [listedNfts, setListedNfts] = useState([]);
@@ -42,8 +42,9 @@ const Dashboard = () => {
         contract.fetchMarketItems().catch(e => { console.error("fetchMarketItems failed", e); return []; })
       ]);
 
+      console.log("Connected Chain:", chain?.id);
       console.log("Connected Address:", address);
-      console.log("Raw Contract Items:", { owned: ownedData, market: marketData });
+      console.log("RAW DASHBOARD DATA:", { owned: ownedData, market: marketData });
 
       const userAddr = address.toLowerCase();
 
@@ -88,11 +89,19 @@ const Dashboard = () => {
         }
       };
 
-      // Process all data
-      const [processedOwned, processedMarket] = await Promise.all([
-        Promise.all(ownedData.map(i => processItem(i))),
-        Promise.all(marketData.map(i => processItem(i)))
+      // Process all data with allSettled for maximum isolation
+      const [ownedResults, marketResults] = await Promise.all([
+        Promise.allSettled(ownedData.map(i => processItem(i))),
+        Promise.allSettled(marketData.map(i => processItem(i)))
       ]);
+
+      const processedOwned = ownedResults
+        .filter(r => r.status === 'fulfilled')
+        .map(r => r.value);
+        
+      const processedMarket = marketResults
+        .filter(r => r.status === 'fulfilled')
+        .map(r => r.value);
 
       // 1. Personal Holdings: Items where user is owner AND it's not currently listed in market
       // (Or items returned by fetchMyNFTs)
