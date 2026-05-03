@@ -39,8 +39,11 @@ const Dashboard = () => {
       
       const [ownedData, marketData] = await Promise.all([
         contract.fetchMyNFTs().catch(e => { console.error("fetchMyNFTs failed", e); return []; }),
-        contract.fetchMarketItems().catch(e => { console.error("fetchMarketItems failed", e); return []; })
+        contract.fetchItemsListed().catch(e => { console.error("fetchItemsListed failed", e); return []; })
       ]);
+
+      console.log("Connected Address:", address);
+      console.log("Raw Contract Items:", { owned: ownedData, market: marketData });
 
       const userAddr = address.toLowerCase();
 
@@ -95,11 +98,12 @@ const Dashboard = () => {
       // (Or items returned by fetchMyNFTs)
       const owned = processedOwned.filter(item => item !== null);
 
-      // 2. Active Listings: Items from marketData where user is EITHER seller or owner
+      // 2. Active Listings: Items from marketData where user is the seller
+      // fetchItemsListed already filters by msg.sender, but we double-check here for safety and normalization
       const listed = processedMarket.filter(item => {
         if (!item) return false;
-        const isUserRelated = (item.seller === userAddr || item.owner === userAddr);
-        return isUserRelated && !item.sold;
+        const isUserSeller = item.seller.toLowerCase() === userAddr;
+        return isUserSeller && !item.sold;
       });
 
       console.log("Dashboard Refresh:", { 
