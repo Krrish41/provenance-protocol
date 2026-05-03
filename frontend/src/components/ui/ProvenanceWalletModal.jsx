@@ -36,7 +36,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
 
   // Aggressive In-App Browser Auto-Connect
   useEffect(() => {
-    if (!isConnected && typeof window !== 'undefined' && window.ethereum) {
+    if (isMobile && !isConnected && typeof window !== 'undefined' && window.ethereum) {
       // Find the injected connector (generic or specific)
       const injectedConnector = connectors.find(c => 
         c.id === 'injected' || 
