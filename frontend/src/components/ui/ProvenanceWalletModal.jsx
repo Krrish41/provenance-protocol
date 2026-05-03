@@ -45,7 +45,12 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
         connectError.message?.toLowerCase().includes('user denied');
 
       if (isUserRejection) {
-        setUiState(UI_STATES.ERROR);
+        // If the user rejected, take them back to the action screen instead of showing a generic failure
+        if (isMobile) {
+          setUiState(UI_STATES.MOBILE_ACTION_REQUIRED);
+        } else {
+          setUiState(UI_STATES.ERROR);
+        }
       } else {
         if (isMobile) {
           setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
@@ -103,30 +108,52 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const triggerMobileConnection = () => {
+  const triggerMobileConnection = async () => {
     disconnect();
     
-    const checkVisibility = () => {
-      if (document.visibilityState === 'hidden') {
-        if (connectionTimeout.current) {
-          clearTimeout(connectionTimeout.current);
-          connectionTimeout.current = null;
-        }
+    const wcConnector = connectors.find(c => c.id === 'walletConnect');
+    if (!wcConnector) return setUiState(UI_STATES.ERROR);
+
+    // Strict Visibility Handler: Clear timeout if the app actually opens
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && connectionTimeout.current) {
+        clearTimeout(connectionTimeout.current);
+        connectionTimeout.current = null;
+        console.log("App handoff detected via Visibility API");
       }
     };
-    document.addEventListener('visibilitychange', checkVisibility, { once: true });
 
     try {
       setUiState(UI_STATES.CONNECTING);
-      const wcConnector = connectors.find(c => c.id === 'walletConnect');
-      connect({ connector: wcConnector || selectedConnector });
       
-      connectionTimeout.current = setTimeout(() => {
-        document.removeEventListener('visibilitychange', checkVisibility);
-        if (document.visibilityState === 'visible' && !isConnected) {
-          setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
+      const provider = await wcConnector.getProvider();
+      
+      // Listen for the URI event to force a high-fidelity deep link
+      provider.once('display_uri', (uri) => {
+        document.addEventListener('visibilitychange', handleVisibilityChange, { once: true });
+        
+        const name = selectedConnector?.name.toLowerCase() || "";
+        let deepLink = uri;
+        
+        if (name.includes('metamask')) {
+          deepLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
+        } else if (name.includes('rainbow')) {
+          deepLink = `https://rnbwapp.com/wc?uri=${encodeURIComponent(uri)}`;
         }
-      }, 2500);
+
+        window.location.href = deepLink;
+
+        // Start the fallback timeout (3.5s for older devices)
+        connectionTimeout.current = setTimeout(() => {
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
+          // If the browser is still visible, the deep-link failed (likely app not installed)
+          if (document.visibilityState === 'visible' && !isConnected) {
+            setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
+          }
+        }, 3500);
+      });
+
+      connect({ connector: wcConnector });
     } catch (err) {
       setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
     }
@@ -163,7 +190,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="relative bg-[#0B0C10] border border-[#45A29E] rounded-lg w-full max-w-2xl flex flex-col md:flex-row min-h-[460px] max-h-[90vh] overflow-y-auto shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+        className="relative bg-[#0B0C10] border border-[#45A29E] rounded-lg w-full max-w-2xl flex flex-col md:flex-row min-h-[460px] max-h-[85vh] overflow-y-auto shadow-[0_0_50px_rgba(0,0,0,0.5)]"
       >
         <button 
           onClick={onClose}
@@ -224,31 +251,31 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                 key="mobile-action"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center gap-8 py-4"
+                className="flex flex-col items-center justify-center space-y-6 w-full py-4"
               >
                 <div className="w-20 h-20 bg-[#66FCF1]/10 rounded-2xl flex items-center justify-center text-[#66FCF1] border border-[#66FCF1]/30">
                   <Wallet size={40} />
                 </div>
                 <div className="space-y-2">
-                  <h2 className="text-[#C5C6C7] text-2xl font-bold">Connect via Mobile App</h2>
-                  <p className="text-[#45A29E] text-xs font-mono uppercase tracking-widest">Selected: {selectedConnector?.name}</p>
+                  <h2 className="text-[#C5C6C7] text-2xl font-bold">Connect Mobile App</h2>
+                  <p className="text-[#45A29E] text-[10px] font-mono uppercase tracking-[0.2em]">{selectedConnector?.name} Selected</p>
                 </div>
                 
-                <div className="flex flex-col gap-4 w-full max-w-[280px]">
+                <div className="flex flex-col gap-3 w-full max-w-[280px]">
                   <button 
                     onClick={triggerMobileConnection}
-                    className="w-full bg-[#66FCF1] text-[#0B0C10] py-4 rounded font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(102,252,241,0.3)] transition-transform active:scale-95"
+                    className="w-full bg-[#66FCF1] text-[#0B0C10] py-2.5 px-4 rounded text-sm font-semibold tracking-wide uppercase shadow-[0_0_20px_rgba(102,252,241,0.2)] transition-all active:scale-95"
                   >
-                    Open in {selectedConnector?.name} App
+                    Open {selectedConnector?.name} App
                   </button>
                   
                   <a 
                     href={selectedConnector?.name.toLowerCase().includes('metamask') ? 'https://metamask.io/download/' : 'https://rainbow.me/download/'}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full border border-[#45A29E] text-[#45A29E] py-4 rounded font-bold uppercase tracking-widest hover:text-[#66FCF1] hover:border-[#66FCF1] transition-all"
+                    className="w-full border border-[#45A29E]/50 text-[#45A29E] py-2.5 px-4 rounded text-sm font-semibold tracking-wide uppercase hover:text-[#66FCF1] hover:border-[#66FCF1] transition-all"
                   >
-                    I don't have the app - Get {selectedConnector?.name}
+                    Get {selectedConnector?.name}
                   </a>
                 </div>
               </motion.div>
@@ -294,10 +321,10 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                     {isIOS ? 'App Store' : 'Google Play'}
                   </a>
                   <button 
-                    onClick={() => setUiState(UI_STATES.DEFAULT)}
+                    onClick={() => setUiState(UI_STATES.MOBILE_ACTION_REQUIRED)}
                     className="text-[#45A29E] text-xs font-mono hover:text-[#66FCF1]"
                   >
-                    Try Another Wallet
+                    Try Again
                   </button>
                 </div>
               </motion.div>
@@ -353,7 +380,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                 <p className="text-[#45A29E] text-sm max-w-[220px]">The connection was aborted or timed out. Please try again.</p>
                 <button 
                   onClick={() => {
-                    setUiState(UI_STATES.DEFAULT);
+                    setUiState(isMobile ? UI_STATES.MOBILE_ACTION_REQUIRED : UI_STATES.DEFAULT);
                     setSelectedConnector(null);
                   }}
                   className="mt-4 text-[#66FCF1] text-xs uppercase tracking-widest hover:underline"
@@ -395,5 +422,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
     </div>
   );
 };
+
+export default ProvenanceWalletModal;
 
 export default ProvenanceWalletModal;
