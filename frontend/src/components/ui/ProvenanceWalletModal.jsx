@@ -424,5 +424,3 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
 };
 
 export default ProvenanceWalletModal;
-
-export default ProvenanceWalletModal;
