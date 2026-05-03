@@ -20,7 +20,6 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
   const { disconnect } = useDisconnect();
   const [uiState, setUiState] = useState(UI_STATES.DEFAULT);
   const [selectedConnector, setSelectedConnector] = useState(null);
-  const [wcUri, setWcUri] = useState('');
   const connectionTimeout = useRef(null);
 
   const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -79,40 +78,9 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       return;
     }
 
-    // 2. Mobile Pre-Fetching Architecture
     if (isMobile) {
+      // Direct DApp Redirect Flow - No pre-fetching needed
       setUiState(UI_STATES.MOBILE_ACTION_REQUIRED);
-      setWcUri(''); // Reset URI state
-      
-      const wcConnector = connectors.find(c => c.id === 'walletConnect');
-      if (wcConnector) {
-        disconnect(); // Wipe stale sessions
-        
-        try {
-          const provider = await wcConnector.getProvider();
-          
-          // Unified URI capture
-          const handleUri = (uri) => {
-            console.log("[Provenance] URI Pre-fetched:", uri);
-            setWcUri(uri);
-          };
-
-          provider.once('display_uri', handleUri);
-          
-          const onMessage = ({ type, data }) => {
-            if (type === 'display_uri') {
-              handleUri(data);
-              wcConnector.off('message', onMessage);
-            }
-          };
-          wcConnector.on('message', onMessage);
-
-          // Initiate background connection
-          connect({ connector: wcConnector });
-        } catch (err) {
-          console.error("[Provenance] Background WC init failed:", err);
-        }
-      }
       return;
     }
 
@@ -140,16 +108,16 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const getMobileDeepLink = () => {
-    if (!wcUri) return '#';
+  const handleDAppRedirect = () => {
+    // Construct the direct DApp link to open the site in the wallet's internal browser
+    const dappUrl = window.location.host + window.location.pathname;
     const name = selectedConnector?.name.toLowerCase() || "";
+    
     if (name.includes('metamask')) {
-      return `metamask://wc?uri=${encodeURIComponent(wcUri)}`;
+      window.location.href = `https://metamask.app.link/dapp/${dappUrl}`;
+    } else if (name.includes('rainbow')) {
+      window.location.href = `https://rnbwapp.com/dapp/${dappUrl}`;
     }
-    if (name.includes('rainbow')) {
-      return `rainbow://wc?uri=${encodeURIComponent(wcUri)}`;
-    }
-    return wcUri;
   };
 
   // Reset modal state on open/close
@@ -158,7 +126,6 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
       setUiState(UI_STATES.DEFAULT);
       setSelectedConnector(null);
-      setWcUri('');
     }
   }, [isOpen]);
 
@@ -256,22 +223,12 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                 </div>
                 
                 <div className="flex flex-col gap-3 w-full max-w-[280px]">
-                  {wcUri ? (
-                    <a 
-                      href={getMobileDeepLink()}
-                      className="w-full bg-[#66FCF1] text-[#0B0C10] py-2.5 px-4 rounded text-sm font-semibold tracking-wide uppercase text-center shadow-[0_0_20px_rgba(102,252,241,0.2)] transition-all active:scale-95"
-                    >
-                      Open {selectedConnector?.name} App
-                    </a>
-                  ) : (
-                    <button 
-                      disabled
-                      className="w-full bg-[#66FCF1]/20 text-[#66FCF1]/40 py-2.5 px-4 rounded text-sm font-semibold tracking-wide uppercase flex items-center justify-center gap-2 cursor-not-allowed"
-                    >
-                      <Loader2 size={16} className="animate-spin" />
-                      Generating Link...
-                    </button>
-                  )}
+                  <button 
+                    onClick={handleDAppRedirect}
+                    className="w-full bg-[#66FCF1] text-[#0B0C10] py-2.5 px-4 rounded text-sm font-semibold tracking-wide uppercase text-center shadow-[0_0_20px_rgba(102,252,241,0.2)] transition-all active:scale-95"
+                  >
+                    Open {selectedConnector?.name} App
+                  </button>
                   
                   <a 
                     href={selectedConnector?.name.toLowerCase().includes('metamask') ? 'https://metamask.io/download/' : 'https://rainbow.me/download/'}
@@ -328,7 +285,6 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                     onClick={() => {
                       setUiState(UI_STATES.DEFAULT);
                       setSelectedConnector(null);
-                      setWcUri('');
                     }}
                     className="text-[#45A29E] text-xs font-mono hover:text-[#66FCF1]"
                   >
@@ -390,7 +346,6 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                   onClick={() => {
                     setUiState(isMobile ? UI_STATES.MOBILE_ACTION_REQUIRED : UI_STATES.DEFAULT);
                     setSelectedConnector(null);
-                    setWcUri('');
                   }}
                   className="mt-4 text-[#66FCF1] text-xs uppercase tracking-widest hover:underline"
                 >
