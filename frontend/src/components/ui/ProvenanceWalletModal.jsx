@@ -37,14 +37,31 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (connectError) {
       if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
-      setUiState(UI_STATES.ERROR);
+      
+      // Strict Isolation: Only show Connection Failed if the user explicitly rejected
+      const isUserRejection = 
+        connectError.name === 'UserRejectedRequestError' || 
+        connectError.message?.toLowerCase().includes('user rejected') ||
+        connectError.message?.toLowerCase().includes('user denied');
+
+      if (isUserRejection) {
+        setUiState(UI_STATES.ERROR);
+      } else {
+        // For any other error on mobile (URI failures, timeouts, missing apps), 
+        // show the Install prompt as a graceful fallback.
+        if (isMobile) {
+          setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
+        } else {
+          setUiState(UI_STATES.ERROR);
+        }
+      }
     }
-  }, [connectError]);
+  }, [connectError, isMobile]);
 
   // Handle connecting status from Wagmi
   useEffect(() => {
     if (isConnecting && 
-        ![UI_STATES.INSTALL_METAMASK, UI_STATES.INSTALL_RAINBOW, UI_STATES.MOBILE_INSTALL_REQUIRED].includes(uiState)) {
+        ![UI_STATES.INSTALL_METAMASK, UI_STATES.INSTALL_RAINBOW, UI_STATES.MOBILE_INSTALL_REQUIRED, UI_STATES.IN_APP_BROWSER].includes(uiState)) {
       setUiState(UI_STATES.CONNECTING);
     }
   }, [isConnecting, uiState]);
@@ -66,13 +83,29 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       // Aggressively clear stale sessions
       disconnect();
       
+      // visibilitychange listener to detect if the OS opened a wallet app
+      const checkVisibility = () => {
+        if (document.visibilityState === 'hidden') {
+          if (connectionTimeout.current) {
+            clearTimeout(connectionTimeout.current);
+            connectionTimeout.current = null;
+          }
+        }
+      };
+      document.addEventListener('visibilitychange', checkVisibility, { once: true });
+
       try {
         setUiState(UI_STATES.CONNECTING);
-        connect({ connector });
+        
+        // On mobile, we MUST use the WalletConnect connector for deep-linking
+        const wcConnector = connectors.find(c => c.id === 'walletConnect');
+        connect({ connector: wcConnector || connector });
         
         // 3. Installation Fallback Heartbeat
         connectionTimeout.current = setTimeout(() => {
-          if (!isConnected) {
+          document.removeEventListener('visibilitychange', checkVisibility);
+          // If 2.5s pass and browser is still visible, the deep-link likely failed (app not installed)
+          if (document.visibilityState === 'visible' && !isConnected) {
             setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
           }
         }, 2500);
