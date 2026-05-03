@@ -54,33 +54,34 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
   // Handle Wagmi connection errors
   useEffect(() => {
     // CRITICAL: Only trigger error UI if we actually have a selected connector
-    // and weren't in the middle of a reset. This prevents stale errors from showing
-    // immediately when the modal opens.
     if (connectError && selectedConnector) {
-      // Ignore non-fatal "already connected" errors on desktop
-      if (connectError.message?.includes('Connector already connected')) {
+      // Ignore non-fatal warnings on desktop
+      if (
+        connectError.message?.includes('already connected') ||
+        connectError.message?.includes('Connector not found') ||
+        connectError.message?.includes('Resource unavailable')
+      ) {
         return;
       }
 
       if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
       
+      // Only show error screen for actual user rejections or fatal misconfigurations
       const isUserRejection = 
         connectError.name === 'UserRejectedRequestError' || 
         connectError.message?.toLowerCase().includes('user rejected') ||
-        connectError.message?.toLowerCase().includes('user denied');
+        connectError.message?.toLowerCase().includes('user denied') ||
+        (connectError as any).code === 4001;
 
       if (isUserRejection) {
-        if (isMobile) {
-          setUiState(UI_STATES.MOBILE_ACTION_REQUIRED);
-        } else {
-          setUiState(UI_STATES.ERROR);
-        }
+        setUiState(isMobile ? UI_STATES.MOBILE_ACTION_REQUIRED : UI_STATES.ERROR);
       } else {
-        if (isMobile) {
-          setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
-        } else {
-          setUiState(UI_STATES.ERROR);
+        // For other errors on desktop, try to reset silently rather than crashing
+        if (!isMobile) {
+          console.warn("[Provenance] Desktop connection error suppressed:", connectError.message);
+          return;
         }
+        setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
       }
     }
   }, [connectError, isMobile, selectedConnector]);
@@ -97,41 +98,52 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
     setSelectedConnector(connector);
     if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
 
-    // 1. In-App Browser Trap Detection
-    if (isMobile && isInAppBrowser) {
-      setUiState(UI_STATES.IN_APP_BROWSER);
-      return;
-    }
-
-    // 2. MOBILE BRANCH: Just change UI to action required
+    // 1. MOBILE BRANCH (Strictly isolated)
     if (isMobile) {
+      if (isInAppBrowser) {
+        setUiState(UI_STATES.IN_APP_BROWSER);
+        return;
+      }
       setUiState(UI_STATES.MOBILE_ACTION_REQUIRED);
       return;
     }
 
-    // 3. DESKTOP BRANCH: Direct Extension Injection
+    // 2. DESKTOP BRANCH (Direct Extension Path)
     const name = connector.name.toLowerCase();
-
-    // Desktop Extension Detection
-    const isMetaMask = !!window.ethereum?.isMetaMask;
-    const isRainbow = !!window.ethereum?.isRainbow;
-
-    if (name.includes('metamask') && !isMetaMask) {
-      setUiState(UI_STATES.INSTALL_METAMASK);
+    
+    // Safety Net: Check if window.ethereum actually exists
+    const hasInjectedProvider = typeof window !== 'undefined' && !!window.ethereum;
+    
+    if (!hasInjectedProvider) {
+      if (name.includes('metamask')) setUiState(UI_STATES.INSTALL_METAMASK);
+      else if (name.includes('rainbow')) setUiState(UI_STATES.INSTALL_RAINBOW);
       return;
     }
 
-    if (name.includes('rainbow') && !isRainbow) {
-      setUiState(UI_STATES.INSTALL_RAINBOW);
+    // Explicitly target the correct injected connector
+    const targetConnector = connectors.find(c => 
+      c.id === connector.id || 
+      (c.id === 'injected' && c.name.toLowerCase() === name)
+    );
+
+    if (!targetConnector) {
+      console.error("[Provenance] Desktop connector mismatch");
       return;
     }
 
     try {
       setUiState(UI_STATES.CONNECTING);
-      disconnect(); // CRITICAL: Clear stale desktop sessions before new injection
-      connect({ connector });
+      
+      // Wipe stale state before triggering extension
+      disconnect(); 
+      
+      // Execute connection after a micro-tick to ensure disconnect is processed
+      setTimeout(() => {
+        connect({ connector: targetConnector });
+      }, 50);
     } catch (err) {
-      if (!err.message?.includes('already connected')) {
+      // Only show error on explicit rejection
+      if (err.name === 'UserRejectedRequestError' || err.code === 4001) {
         setUiState(UI_STATES.ERROR);
       }
     }
