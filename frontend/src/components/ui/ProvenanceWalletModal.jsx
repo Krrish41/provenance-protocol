@@ -10,6 +10,7 @@ const UI_STATES = {
   CONNECTING: 'CONNECTING',
   ERROR: 'ERROR',
   MOBILE_INSTALL_REQUIRED: 'MOBILE_INSTALL_REQUIRED',
+  MOBILE_ACTION_REQUIRED: 'MOBILE_ACTION_REQUIRED',
   IN_APP_BROWSER: 'IN_APP_BROWSER'
 };
 
@@ -38,7 +39,6 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
     if (connectError) {
       if (connectionTimeout.current) clearTimeout(connectionTimeout.current);
       
-      // Strict Isolation: Only show Connection Failed if the user explicitly rejected
       const isUserRejection = 
         connectError.name === 'UserRejectedRequestError' || 
         connectError.message?.toLowerCase().includes('user rejected') ||
@@ -47,8 +47,6 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       if (isUserRejection) {
         setUiState(UI_STATES.ERROR);
       } else {
-        // For any other error on mobile (URI failures, timeouts, missing apps), 
-        // show the Install prompt as a graceful fallback.
         if (isMobile) {
           setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
         } else {
@@ -61,7 +59,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
   // Handle connecting status from Wagmi
   useEffect(() => {
     if (isConnecting && 
-        ![UI_STATES.INSTALL_METAMASK, UI_STATES.INSTALL_RAINBOW, UI_STATES.MOBILE_INSTALL_REQUIRED, UI_STATES.IN_APP_BROWSER].includes(uiState)) {
+        ![UI_STATES.INSTALL_METAMASK, UI_STATES.INSTALL_RAINBOW, UI_STATES.MOBILE_INSTALL_REQUIRED, UI_STATES.IN_APP_BROWSER, UI_STATES.MOBILE_ACTION_REQUIRED].includes(uiState)) {
       setUiState(UI_STATES.CONNECTING);
     }
   }, [isConnecting, uiState]);
@@ -76,46 +74,14 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       return;
     }
 
-    const name = connector.name.toLowerCase();
-
-    // 2. Mobile Deep-Link Logic
     if (isMobile) {
-      // Aggressively clear stale sessions
-      disconnect();
-      
-      // visibilitychange listener to detect if the OS opened a wallet app
-      const checkVisibility = () => {
-        if (document.visibilityState === 'hidden') {
-          if (connectionTimeout.current) {
-            clearTimeout(connectionTimeout.current);
-            connectionTimeout.current = null;
-          }
-        }
-      };
-      document.addEventListener('visibilitychange', checkVisibility, { once: true });
-
-      try {
-        setUiState(UI_STATES.CONNECTING);
-        
-        // On mobile, we MUST use the WalletConnect connector for deep-linking
-        const wcConnector = connectors.find(c => c.id === 'walletConnect');
-        connect({ connector: wcConnector || connector });
-        
-        // 3. Installation Fallback Heartbeat
-        connectionTimeout.current = setTimeout(() => {
-          document.removeEventListener('visibilitychange', checkVisibility);
-          // If 2.5s pass and browser is still visible, the deep-link likely failed (app not installed)
-          if (document.visibilityState === 'visible' && !isConnected) {
-            setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
-          }
-        }, 2500);
-      } catch (err) {
-        setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
-      }
+      setUiState(UI_STATES.MOBILE_ACTION_REQUIRED);
       return;
     }
 
-    // 4. Desktop Extension Detection
+    const name = connector.name.toLowerCase();
+
+    // Desktop Extension Detection
     const isMetaMask = !!window.ethereum?.isMetaMask;
     const isRainbow = !!window.ethereum?.isRainbow;
 
@@ -137,6 +103,35 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
     }
   };
 
+  const triggerMobileConnection = () => {
+    disconnect();
+    
+    const checkVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        if (connectionTimeout.current) {
+          clearTimeout(connectionTimeout.current);
+          connectionTimeout.current = null;
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', checkVisibility, { once: true });
+
+    try {
+      setUiState(UI_STATES.CONNECTING);
+      const wcConnector = connectors.find(c => c.id === 'walletConnect');
+      connect({ connector: wcConnector || selectedConnector });
+      
+      connectionTimeout.current = setTimeout(() => {
+        document.removeEventListener('visibilitychange', checkVisibility);
+        if (document.visibilityState === 'visible' && !isConnected) {
+          setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
+        }
+      }, 2500);
+    } catch (err) {
+      setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
+    }
+  };
+
   // Reset modal state on open/close
   useEffect(() => {
     if (!isOpen) {
@@ -148,9 +143,12 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const uniqueConnectors = connectors.filter((connector, index, self) => 
-    index === self.findIndex((c) => c.name === connector.name)
-  );
+  // Filter out generic WalletConnect from the Left Pane list
+  const visibleConnectors = connectors
+    .filter((connector, index, self) => 
+      index === self.findIndex((c) => c.name === connector.name)
+    )
+    .filter(c => c.id !== 'walletConnect');
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -178,7 +176,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
         <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-[#45A29E]/30 p-6 flex flex-col gap-4">
           <h3 className="text-[#66FCF1] font-mono text-xs uppercase tracking-[0.2em] mb-4">Select Provider</h3>
           <div className="flex flex-col gap-2">
-            {uniqueConnectors.map((connector) => (
+            {visibleConnectors.map((connector) => (
               <button
                 key={connector.id}
                 onClick={() => handleConnectorClick(connector)}
@@ -218,8 +216,41 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
                   <Wallet size={32} />
                 </div>
                 <p className="text-[#45A29E] font-mono text-sm max-w-[200px] leading-relaxed">
-                  {isMobile ? 'Tap a provider to open your wallet app.' : 'Select a provider from the menu to authenticate.'}
+                  {isMobile ? 'Tap a provider to start.' : 'Select a provider from the menu to authenticate.'}
                 </p>
+              </motion.div>
+            ) : uiState === UI_STATES.MOBILE_ACTION_REQUIRED ? (
+              <motion.div 
+                key="mobile-action"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center gap-8 py-4"
+              >
+                <div className="w-20 h-20 bg-[#66FCF1]/10 rounded-2xl flex items-center justify-center text-[#66FCF1] border border-[#66FCF1]/30">
+                  <Wallet size={40} />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-[#C5C6C7] text-2xl font-bold">Connect via Mobile App</h2>
+                  <p className="text-[#45A29E] text-xs font-mono uppercase tracking-widest">Selected: {selectedConnector?.name}</p>
+                </div>
+                
+                <div className="flex flex-col gap-4 w-full max-w-[280px]">
+                  <button 
+                    onClick={triggerMobileConnection}
+                    className="w-full bg-[#66FCF1] text-[#0B0C10] py-4 rounded font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(102,252,241,0.3)] transition-transform active:scale-95"
+                  >
+                    Open in {selectedConnector?.name} App
+                  </button>
+                  
+                  <a 
+                    href={selectedConnector?.name.toLowerCase().includes('metamask') ? 'https://metamask.io/download/' : 'https://rainbow.me/download/'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full border border-[#45A29E] text-[#45A29E] py-4 rounded font-bold uppercase tracking-widest hover:text-[#66FCF1] hover:border-[#66FCF1] transition-all"
+                  >
+                    I don't have the app - Get {selectedConnector?.name}
+                  </a>
+                </div>
               </motion.div>
             ) : uiState === UI_STATES.IN_APP_BROWSER ? (
               <motion.div 
