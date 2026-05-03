@@ -71,7 +71,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
         connectError.name === 'UserRejectedRequestError' || 
         connectError.message?.toLowerCase().includes('user rejected') ||
         connectError.message?.toLowerCase().includes('user denied') ||
-        (connectError as any).code === 4001;
+        connectError?.code === 4001;
 
       if (isUserRejection) {
         setUiState(isMobile ? UI_STATES.MOBILE_ACTION_REQUIRED : UI_STATES.ERROR);
