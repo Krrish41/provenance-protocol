@@ -79,7 +79,6 @@ const Navbar = () => {
                     className="flex items-center justify-center w-10 h-10 rounded-lg border border-[#45A29E] bg-[#1e2024]/50 text-[#66FCF1] hover:border-[#66FCF1] hover:shadow-[0_0_15px_rgba(102,252,241,0.3)] transition-all duration-300 relative group"
                   >
                     <User size={20} />
-                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-[#66FCF1] rounded-full border-2 border-[#0B0C10] animate-pulse" />
                   </motion.button>
 
                   {/* Desktop Dropdown */}
