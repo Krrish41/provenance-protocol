@@ -111,12 +111,18 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
     // 2. DESKTOP BRANCH (Direct Extension Path)
     const name = connector.name.toLowerCase();
     
-    // Safety Net: Check if window.ethereum actually exists
-    const hasInjectedProvider = typeof window !== 'undefined' && !!window.ethereum;
+    // Safety Net: Check if window.ethereum actually exists and has the right flag
+    const hasInjected = typeof window !== 'undefined' && !!window.ethereum;
+    const isMetaMask = hasInjected && !!window.ethereum.isMetaMask;
+    const isRainbow = hasInjected && !!window.ethereum.isRainbow;
     
-    if (!hasInjectedProvider) {
-      if (name.includes('metamask')) setUiState(UI_STATES.INSTALL_METAMASK);
-      else if (name.includes('rainbow')) setUiState(UI_STATES.INSTALL_RAINBOW);
+    if (name.includes('metamask') && !isMetaMask) {
+      setUiState(UI_STATES.INSTALL_METAMASK);
+      return;
+    }
+
+    if (name.includes('rainbow') && !isRainbow) {
+      setUiState(UI_STATES.INSTALL_RAINBOW);
       return;
     }
 
@@ -128,22 +134,17 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
 
     if (!targetConnector) {
       console.error("[Provenance] Desktop connector mismatch");
+      setUiState(UI_STATES.ERROR);
       return;
     }
 
     try {
       setUiState(UI_STATES.CONNECTING);
-      
-      // Wipe stale state before triggering extension
-      disconnect(); 
-      
-      // Execute connection after a micro-tick to ensure disconnect is processed
-      setTimeout(() => {
-        connect({ connector: targetConnector });
-      }, 50);
+      // Trigger connection directly. Wagmi handles session handoffs.
+      connect({ connector: targetConnector });
     } catch (err) {
-      // Only show error on explicit rejection
-      if (err.name === 'UserRejectedRequestError' || err.code === 4001) {
+      console.error("[Provenance] Desktop connect sync error:", err);
+      if (err.name === 'UserRejectedRequestError' || err?.code === 4001) {
         setUiState(UI_STATES.ERROR);
       }
     }
