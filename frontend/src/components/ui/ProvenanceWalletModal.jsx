@@ -112,7 +112,10 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
     disconnect();
     
     const wcConnector = connectors.find(c => c.id === 'walletConnect');
-    if (!wcConnector) return setUiState(UI_STATES.ERROR);
+    if (!wcConnector) {
+      console.error("WalletConnect connector not found");
+      return setUiState(UI_STATES.ERROR);
+    }
 
     // Strict Visibility Handler: Clear timeout if the app actually opens
     const handleVisibilityChange = () => {
@@ -128,33 +131,61 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
       
       const provider = await wcConnector.getProvider();
       
-      // Listen for the URI event to force a high-fidelity deep link
-      provider.once('display_uri', (uri) => {
+      // Captured URI handler
+      const onDisplayUri = (uri) => {
         document.addEventListener('visibilitychange', handleVisibilityChange, { once: true });
         
         const name = selectedConnector?.name.toLowerCase() || "";
-        let deepLink = uri;
+        console.log("Mobile Deep Link URI captured:", uri);
         
+        // Use a mix of Universal Links and Custom Schemes for maximum compatibility
+        let deepLink = uri;
         if (name.includes('metamask')) {
-          deepLink = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
+          // Attempt custom scheme first, then Universal Link
+          deepLink = `metamask://wc?uri=${encodeURIComponent(uri)}`;
+          // Fallback to Universal Link if the above fails (handled by OS or timer)
+          setTimeout(() => {
+            if (document.visibilityState === 'visible') {
+              window.location.href = `https://metamask.app.link/wc?uri=${encodeURIComponent(uri)}`;
+            }
+          }, 500);
         } else if (name.includes('rainbow')) {
-          deepLink = `https://rnbwapp.com/wc?uri=${encodeURIComponent(uri)}`;
+          deepLink = `rainbow://wc?uri=${encodeURIComponent(uri)}`;
+          setTimeout(() => {
+            if (document.visibilityState === 'visible') {
+              window.location.href = `https://rnbwapp.com/wc?uri=${encodeURIComponent(uri)}`;
+            }
+          }, 500);
         }
 
         window.location.href = deepLink;
 
-        // Start the fallback timeout (3.5s for older devices)
+        // Start the fallback timeout (4s for slower deep-link handling)
         connectionTimeout.current = setTimeout(() => {
           document.removeEventListener('visibilitychange', handleVisibilityChange);
-          // If the browser is still visible, the deep-link failed (likely app not installed)
           if (document.visibilityState === 'visible' && !isConnected) {
+            console.warn("Deep link failed to hide browser after 4s");
             setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
           }
-        }, 3500);
-      });
+        }, 4000);
+      };
 
+      // Subscribe to both possible event names (v1 vs v2 nuances)
+      provider.once('display_uri', onDisplayUri);
+      
+      // Also try message event which is common in Wagmi v2 wrappers
+      const onMessage = ({ type, data }) => {
+        if (type === 'display_uri') {
+          onDisplayUri(data);
+          wcConnector.off('message', onMessage);
+        }
+      };
+      wcConnector.on('message', onMessage);
+
+      // Finally, trigger the connection
       connect({ connector: wcConnector });
     } catch (err) {
+      console.error("Mobile connection trigger failed:", err);
       setUiState(UI_STATES.MOBILE_INSTALL_REQUIRED);
     }
   };
