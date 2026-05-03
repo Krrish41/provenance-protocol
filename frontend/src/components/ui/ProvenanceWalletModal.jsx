@@ -53,7 +53,10 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
 
   // Handle Wagmi connection errors
   useEffect(() => {
-    if (connectError) {
+    // CRITICAL: Only trigger error UI if we actually have a selected connector
+    // and weren't in the middle of a reset. This prevents stale errors from showing
+    // immediately when the modal opens.
+    if (connectError && selectedConnector) {
       // Ignore non-fatal "already connected" errors on desktop
       if (connectError.message?.includes('Connector already connected')) {
         return;
@@ -80,7 +83,7 @@ const ProvenanceWalletModal = ({ isOpen, onClose }) => {
         }
       }
     }
-  }, [connectError, isMobile]);
+  }, [connectError, isMobile, selectedConnector]);
 
   // Handle connecting status from Wagmi
   useEffect(() => {
