@@ -40,6 +40,8 @@ const Mint = () => {
       const tokenURI = await uploadJSONToIPFS(metadata);
 
       setStatus('Please approve transaction in Wallet...');
+      if (!window.ethereum) throw new Error("No crypto wallet found. Please install MetaMask or another wallet.");
+      
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
@@ -59,8 +61,20 @@ const Mint = () => {
       setTimeout(() => setStatus(''), 3000);
     } catch (error) {
       console.error("Error minting:", error);
-      toast.error('Error occurred. Please try again.');
-      setStatus('Error occurred. Please try again.');
+      let errorMessage = 'Error occurred. Please try again.';
+      
+      if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
+        errorMessage = 'Transaction rejected by user.';
+      } else if (error.message?.includes('insufficient funds')) {
+        errorMessage = 'Insufficient funds for minting.';
+      } else if (error.response?.data?.error) {
+        errorMessage = `IPFS Error: ${error.response.data.error}`;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+      setStatus(`Error: ${errorMessage}`);
     } finally {
       setUploading(false);
     }

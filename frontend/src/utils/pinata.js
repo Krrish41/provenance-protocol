@@ -10,7 +10,6 @@ export const uploadFileToIPFS = async (file) => {
         const res = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
             headers: {
                 'Authorization': `Bearer ${PINATA_JWT}`,
-                'Content-Type': `multipart/form-data;`,
             }
         });
         return `https://salmon-blank-leopon-846.mypinata.cloud/ipfs/${res.data.IpfsHash}`;
