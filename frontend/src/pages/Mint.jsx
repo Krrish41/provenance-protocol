@@ -50,7 +50,15 @@ const Mint = () => {
       const priceInWei = parseEther(formInput.price);
 
       setStatus('Minting & Listing (Confirm in Wallet)...');
-      let transaction = await contract.createToken(tokenURI, priceInWei, { value: listingPrice });
+      
+      // Get current gas price and add a 20% buffer to avoid stuck transactions
+      const feeData = await provider.getFeeData();
+      const gasPrice = feeData.gasPrice ? (feeData.gasPrice * 120n / 100n) : undefined;
+      
+      let transaction = await contract.createToken(tokenURI, priceInWei, { 
+        value: listingPrice,
+        gasPrice: gasPrice 
+      });
       console.log("Transaction Hash:", transaction.hash);
       
       // Speed up polling for faster detection
