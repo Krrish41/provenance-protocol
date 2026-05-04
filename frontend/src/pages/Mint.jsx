@@ -52,7 +52,24 @@ const Mint = () => {
       setStatus('Minting & Listing (Confirm in Wallet)...');
       let transaction = await contract.createToken(tokenURI, priceInWei, { value: listingPrice });
       console.log("Transaction Hash:", transaction.hash);
-      setStatus(`Transaction Sent! Waiting for confirmation... Hash: ${transaction.hash.substring(0, 10)}...`);
+      
+      // Speed up polling for faster detection
+      provider.pollingInterval = 3000; 
+      
+      const explorerUrl = `https://explorer.securechain.ai/tx/${transaction.hash}`;
+      setStatus(
+        <span className="flex flex-col items-center gap-2">
+          <span>Transaction Sent! Waiting for confirmation...</span>
+          <a 
+            href={explorerUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-[#66FCF1] underline hover:text-white transition-colors text-xs"
+          >
+            View on Explorer: {transaction.hash.substring(0, 10)}...
+          </a>
+        </span>
+      );
       
       await transaction.wait();
       
