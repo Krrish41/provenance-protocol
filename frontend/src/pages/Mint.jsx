@@ -39,10 +39,23 @@ const Mint = () => {
       const metadata = { name, description, image: imageURL };
       const tokenURI = await uploadJSONToIPFS(metadata);
 
-      setStatus('Please approve transaction in Wallet...');
+      setStatus('Verifying network & contract...');
       if (!window.ethereum) throw new Error("No crypto wallet found. Please install MetaMask or another wallet.");
       
       const provider = new BrowserProvider(window.ethereum);
+      
+      // Check if user is on the correct network (SCAI Mainnet = 34)
+      const network = await provider.getNetwork();
+      if (Number(network.chainId) !== 34) {
+        throw new Error(`Wrong Network: You are on ${network.name} (ID: ${network.chainId}). Please switch to SCAI Mainnet (ID: 34).`);
+      }
+
+      // Verify contract existence (check code at address)
+      const code = await provider.getCode(MARKETPLACE_ADDRESS);
+      if (code === '0x' || code === '0x0') {
+        throw new Error(`Contract not found at address ${MARKETPLACE_ADDRESS}. Please ensure the contract is deployed on SCAI Mainnet.`);
+      }
+
       const signer = await provider.getSigner();
       const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
 
