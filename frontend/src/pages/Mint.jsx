@@ -49,8 +49,11 @@ const Mint = () => {
       const listingPrice = await contract.getListingPrice();
       const priceInWei = parseEther(formInput.price);
 
-      setStatus('Minting & Listing...');
+      setStatus('Minting & Listing (Confirm in Wallet)...');
       let transaction = await contract.createToken(tokenURI, priceInWei, { value: listingPrice });
+      console.log("Transaction Hash:", transaction.hash);
+      setStatus(`Transaction Sent! Waiting for confirmation... Hash: ${transaction.hash.substring(0, 10)}...`);
+      
       await transaction.wait();
       
       toast.success('Successfully minted and listed!');
