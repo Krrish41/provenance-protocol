@@ -116,19 +116,9 @@ const Mint = () => {
       // Add 30% buffer to gas limit
       const gasLimit = (gasEstimate * 130n) / 100n;
 
-      // Add 20% buffer to fees (detect if EIP-1559 is supported)
+      // Force legacy gas price calculation for SCAI compatibility
       const feeData = await publicClient.estimateFeesPerGas();
-      
-      let gasPrice, maxFeePerGas, maxPriorityFeePerGas;
-
-      if (feeData.maxFeePerGas) {
-        // EIP-1559 supported
-        maxFeePerGas = (feeData.maxFeePerGas * 120n) / 100n;
-        maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas * 120n) / 100n;
-      } else {
-        // Legacy chain (SCAI)
-        gasPrice = (feeData.gasPrice * 120n) / 100n;
-      }
+      const gasPrice = (feeData.gasPrice * 120n) / 100n;
 
       setStatus('Confirm in Wallet...');
 
@@ -137,8 +127,6 @@ const Mint = () => {
         ...request,
         gas: gasLimit,
         gasPrice,
-        maxFeePerGas,
-        maxPriorityFeePerGas,
       });
 
       setTxHash(hash);
