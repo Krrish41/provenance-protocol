@@ -1,21 +1,60 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BrowserProvider, Contract, parseEther } from 'ethers';
-import { UploadCloud, Loader2, ShieldAlert } from 'lucide-react';
+import { parseEther, formatEther } from 'viem';
+import { UploadCloud, Loader2, ShieldAlert, ExternalLink, AlertTriangle } from 'lucide-react';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import { uploadFileToIPFS, uploadJSONToIPFS } from '../utils/pinata';
 import toast from 'react-hot-toast';
-import { useAccount } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { useWalletModal } from '../context/WalletModalContext';
 
 const Mint = () => {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { openWalletModal } = useWalletModal();
+  const publicClient = usePublicClient();
+  
   const [formInput, setFormInput] = useState({ price: '', name: '', description: '' });
   const [fileUrl, setFileUrl] = useState(null);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState('');
+  const [txHash, setTxHash] = useState(null);
+
+  const { writeContractAsync, isPending: isWritePending } = useWriteContract();
+
+  const { 
+    data: receipt, 
+    isLoading: isWaitingForReceipt,
+    isSuccess: isTxSuccess,
+    error: receiptError 
+  } = useWaitForTransactionReceipt({
+    hash: txHash,
+    query: {
+      enabled: !!txHash,
+      retry: 10,
+      retryDelay: 3000,
+    }
+  });
+
+  useEffect(() => {
+    if (isTxSuccess) {
+      toast.success('Successfully minted and listed!');
+      setStatus('Successfully minted and listed!');
+      setFormInput({ price: '', name: '', description: '' });
+      setFile(null);
+      setFileUrl(null);
+      setTxHash(null);
+      setTimeout(() => setStatus(''), 5000);
+    }
+  }, [isTxSuccess]);
+
+  useEffect(() => {
+    if (receiptError) {
+      console.error("Receipt error:", receiptError);
+      setStatus(`Transaction error: ${receiptError.message}`);
+      toast.error("Transaction might have been dropped. Please check explorer.");
+    }
+  }, [receiptError]);
 
   async function onChange(e) {
     const file = e.target.files[0];
@@ -32,90 +71,111 @@ const Mint = () => {
     }
     
     setUploading(true);
-    setStatus('Uploading image to IPFS...');
+    setStatus('Uploading assets to IPFS...');
     try {
+      // 1. IPFS Upload
       const imageURL = await uploadFileToIPFS(file);
-      setStatus('Uploading metadata to IPFS...');
       const metadata = { name, description, image: imageURL };
       const tokenURI = await uploadJSONToIPFS(metadata);
 
-      setStatus('Verifying network & contract...');
-      if (!window.ethereum) throw new Error("No crypto wallet found. Please install MetaMask or another wallet.");
-      
-      const provider = new BrowserProvider(window.ethereum);
-      
-      // Check if user is on the correct network (SCAI Mainnet = 34)
-      const network = await provider.getNetwork();
-      if (Number(network.chainId) !== 34) {
-        throw new Error(`Wrong Network: You are on ${network.name} (ID: ${network.chainId}). Please switch to SCAI Mainnet (ID: 34).`);
+      setStatus('Preparing transaction...');
+
+      // 2. Network Check
+      const chainId = await publicClient.getChainId();
+      if (chainId !== 34) {
+        throw new Error("Please switch to SecureChain AI Mainnet (Chain ID: 34)");
       }
 
-      // Verify contract existence (check code at address)
-      const code = await provider.getCode(MARKETPLACE_ADDRESS);
-      if (code === '0x' || code === '0x0') {
-        throw new Error(`Contract not found at address ${MARKETPLACE_ADDRESS}. Please ensure the contract is deployed on SCAI Mainnet.`);
-      }
+      // 3. Contract Logic Preparation
+      const listingPrice = await publicClient.readContract({
+        address: MARKETPLACE_ADDRESS,
+        abi: NFTMarketplaceABI,
+        functionName: 'getListingPrice',
+      });
 
-      const signer = await provider.getSigner();
-      const contract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, signer);
-
-      const listingPrice = await contract.getListingPrice();
       const priceInWei = parseEther(formInput.price);
 
-      setStatus('Minting & Listing (Confirm in Wallet)...');
-      
-      // Get current gas price and add a 20% buffer to avoid stuck transactions
-      const feeData = await provider.getFeeData();
-      const gasPrice = feeData.gasPrice ? (feeData.gasPrice * 120n / 100n) : undefined;
-      
-      let transaction = await contract.createToken(tokenURI, priceInWei, { 
+      setStatus('Simulating & Estimating Gas...');
+
+      // 4. Gas & Fee Hardening
+      // We simulate first to ensure the tx will succeed
+      const { request } = await publicClient.simulateContract({
+        address: MARKETPLACE_ADDRESS,
+        abi: NFTMarketplaceABI,
+        functionName: 'createToken',
+        args: [tokenURI, priceInWei],
         value: listingPrice,
-        gasPrice: gasPrice 
+        account: address,
       });
-      console.log("Transaction Hash:", transaction.hash);
+
+      const gasEstimate = await publicClient.estimateGas({
+        ...request,
+        account: address,
+      });
+
+      // Add 30% buffer to gas limit
+      const gasLimit = (gasEstimate * 130n) / 100n;
+
+      // Add 20% buffer to fees
+      const feeData = await publicClient.estimateFeesPerGas();
+      const maxFeePerGas = feeData.maxFeePerGas ? (feeData.maxFeePerGas * 120n) / 100n : undefined;
+      const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas ? (feeData.maxPriorityFeePerGas * 120n) / 100n : undefined;
+
+      setStatus('Confirm in Wallet...');
+
+      // 5. Execution
+      const hash = await writeContractAsync({
+        ...request,
+        gas: gasLimit,
+        maxFeePerGas,
+        maxPriorityFeePerGas,
+      });
+
+      setTxHash(hash);
       
-      // Speed up polling for faster detection
-      provider.pollingInterval = 3000; 
-      
-      const explorerUrl = `https://explorer.securechain.ai/tx/${transaction.hash}`;
+      const explorerUrl = `https://explorer.securechain.ai/tx/${hash}`;
       setStatus(
-        <span className="flex flex-col items-center gap-2">
-          <span>Transaction Sent! Waiting for confirmation...</span>
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Transaction Sent! Waiting for block...</span>
+          </div>
           <a 
             href={explorerUrl} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-[#66FCF1] underline hover:text-white transition-colors text-xs"
+            className="flex items-center gap-1 text-[#66FCF1] underline hover:text-white transition-colors text-xs"
           >
-            View on Explorer: {transaction.hash.substring(0, 10)}...
+            View on Explorer <ExternalLink className="w-3 h-3" />
           </a>
-        </span>
+        </div>
       );
-      
-      await transaction.wait();
-      
-      toast.success('Successfully minted and listed!');
-      setStatus('Successfully minted and listed!');
-      setFormInput({ price: '', name: '', description: '' });
-      setFile(null);
-      setFileUrl(null);
-      setTimeout(() => setStatus(''), 3000);
+
     } catch (error) {
-      console.error("Error minting:", error);
-      let errorMessage = 'Error occurred. Please try again.';
-      
-      if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
+      console.error("Minting error:", error);
+      let errorMessage = 'Minting failed';
+
+      // Parse common error patterns
+      if (error.message?.includes('User rejected')) {
         errorMessage = 'Transaction rejected by user.';
       } else if (error.message?.includes('insufficient funds')) {
-        errorMessage = 'Insufficient funds for minting.';
-      } else if (error.response?.data?.error) {
-        errorMessage = `IPFS Error: ${error.response.data.error}`;
-      } else if (error.message) {
-        errorMessage = error.message;
+        errorMessage = 'Insufficient SCAI for gas + listing price.';
+      } else if (error.message?.includes('-32603') || error.message?.includes('rate limit')) {
+        errorMessage = 'RPC node is rate limited. Retrying in background...';
+        // Logic to potentially retry would go here, but Wagmi handles some retries
+      } else if (error.message?.includes('exceeds block gas limit')) {
+        errorMessage = 'Gas limit too high or block full. Try again shortly.';
+      } else {
+        errorMessage = error.shortMessage || error.message || 'Unknown execution error';
       }
-      
+
       toast.error(errorMessage);
-      setStatus(`Error: ${errorMessage}`);
+      setStatus(
+        <div className="flex items-center gap-2 text-red-400">
+          <AlertTriangle className="w-4 h-4" />
+          <span>Error: {errorMessage}</span>
+        </div>
+      );
     } finally {
       setUploading(false);
     }

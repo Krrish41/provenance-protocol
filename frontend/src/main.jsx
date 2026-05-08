@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 
-import { createConfig, http, WagmiProvider } from 'wagmi';
+import { createConfig, http, fallback, WagmiProvider } from 'wagmi';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { defineChain } from 'viem';
 import { injected, walletConnect } from 'wagmi/connectors';
@@ -21,8 +21,21 @@ export const scaiMainnet = defineChain({
     symbol: 'SCAI',
   },
   rpcUrls: {
-    default: { http: ['https://34.rpc.thirdweb.com'] },
-    public: { http: ['https://34.rpc.thirdweb.com'] },
+    default: { 
+      http: [
+        'https://mainnet-rpc.scai.network',
+        'https://34.rpc.thirdweb.com'
+      ] 
+    },
+    public: { 
+      http: [
+        'https://mainnet-rpc.scai.network',
+        'https://34.rpc.thirdweb.com'
+      ] 
+    },
+  },
+  blockExplorers: {
+    default: { name: 'SCAI Explorer', url: 'https://explorer.securechain.ai' },
   },
 });
 
@@ -44,8 +57,20 @@ const config = createConfig({
     }),
   ],
   transports: {
-    [scaiMainnet.id]: http(),
+    [scaiMainnet.id]: fallback([
+      http(import.meta.env.VITE_SCAI_RPC_FALLBACK || 'https://mainnet-rpc.scai.network', {
+        retryCount: 10,
+        retryDelay: 2000,
+        timeout: 20000,
+      }),
+      http(import.meta.env.VITE_SCAI_RPC_URL || 'https://34.rpc.thirdweb.com', {
+        retryCount: 10,
+        retryDelay: 3000,
+        timeout: 20000,
+      }),
+    ], { rank: true }),
   },
+  pollingInterval: 5000,
 });
 
 const queryClient = new QueryClient();
