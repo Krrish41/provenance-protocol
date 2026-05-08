@@ -125,6 +125,7 @@ const Mint = () => {
       // 5. Execution
       const hash = await writeContractAsync({
         ...request,
+        type: 'legacy',
         gas: gasLimit,
         gasPrice,
       });
