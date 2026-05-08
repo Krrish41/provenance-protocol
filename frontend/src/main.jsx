@@ -37,6 +37,12 @@ export const scaiMainnet = defineChain({
   blockExplorers: {
     default: { name: 'SCAI Explorer', url: 'https://explorer.securechain.ai' },
   },
+  fees: {
+    async estimateFeesPerGas({ publicClient }) {
+      const gasPrice = await publicClient.getGasPrice();
+      return { gasPrice };
+    },
+  },
 });
 
 const config = createConfig({

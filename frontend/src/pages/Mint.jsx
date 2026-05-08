@@ -5,13 +5,14 @@ import { UploadCloud, Loader2, ShieldAlert, ExternalLink, AlertTriangle } from '
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import { uploadFileToIPFS, uploadJSONToIPFS } from '../utils/pinata';
 import toast from 'react-hot-toast';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useWalletClient } from 'wagmi';
 import { useWalletModal } from '../context/WalletModalContext';
 
 const Mint = () => {
   const { isConnected, address } = useAccount();
   const { openWalletModal } = useWalletModal();
   const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
   
   const [formInput, setFormInput] = useState({ price: '', name: '', description: '' });
   const [fileUrl, setFileUrl] = useState(null);
@@ -120,14 +121,21 @@ const Mint = () => {
       const feeData = await publicClient.estimateFeesPerGas();
       const gasPrice = (feeData.gasPrice * 120n) / 100n;
 
-      setStatus('Confirm in Wallet...');
+      setStatus('Confirm Legacy Mint (Type 0) in Wallet...');
 
-      // 5. Execution
-      const hash = await writeContractAsync({
-        ...request,
-        type: 'legacy',
-        gas: gasLimit,
-        gasPrice,
+      // 5. Raw EXECUTION: Bypass hooks to ensure strictly legacy payload
+      if (!walletClient) throw new Error("Wallet not fully initialized. Please try again.");
+
+      const hash = await walletClient.writeContract({
+        address: MARKETPLACE_ADDRESS,
+        abi: NFTMarketplaceABI,
+        functionName: 'createToken',
+        args: [tokenURI, priceInWei],
+        value: listingPrice,
+        account: address,
+        type: 'legacy',               // Strictly Type 0 (Legacy)
+        gas: paddedGasLimit,           // 20% padded limit
+        gasPrice: gasPriceWithBuffer,   // Standard gasPrice (No EIP-1559 fields!)
       });
 
       setTxHash(hash);
