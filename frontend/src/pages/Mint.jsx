@@ -116,10 +116,19 @@ const Mint = () => {
       // Add 30% buffer to gas limit
       const gasLimit = (gasEstimate * 130n) / 100n;
 
-      // Add 20% buffer to fees
+      // Add 20% buffer to fees (detect if EIP-1559 is supported)
       const feeData = await publicClient.estimateFeesPerGas();
-      const maxFeePerGas = feeData.maxFeePerGas ? (feeData.maxFeePerGas * 120n) / 100n : undefined;
-      const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas ? (feeData.maxPriorityFeePerGas * 120n) / 100n : undefined;
+      
+      let gasPrice, maxFeePerGas, maxPriorityFeePerGas;
+
+      if (feeData.maxFeePerGas) {
+        // EIP-1559 supported
+        maxFeePerGas = (feeData.maxFeePerGas * 120n) / 100n;
+        maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas * 120n) / 100n;
+      } else {
+        // Legacy chain (SCAI)
+        gasPrice = (feeData.gasPrice * 120n) / 100n;
+      }
 
       setStatus('Confirm in Wallet...');
 
@@ -127,6 +136,7 @@ const Mint = () => {
       const hash = await writeContractAsync({
         ...request,
         gas: gasLimit,
+        gasPrice,
         maxFeePerGas,
         maxPriorityFeePerGas,
       });
