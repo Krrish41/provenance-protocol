@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { parseEther, formatEther } from 'viem';
+import { parseEther, formatEther, parseGwei } from 'viem';
 import { UploadCloud, Loader2, ShieldAlert, ExternalLink, AlertTriangle } from 'lucide-react';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import { uploadFileToIPFS, uploadJSONToIPFS } from '../utils/pinata';
@@ -117,12 +117,17 @@ const Mint = () => {
         account: address,
       });
 
-      // Add 30% buffer to gas limit
-      const gasLimit = gasEstimate ? (BigInt(gasEstimate) * 130n) / 100n : undefined;
+      // Hardened Gas Limit: Use 4x multiplier with a safe floor of 500,000 units
+      const gasLimit = gasEstimate 
+        ? (BigInt(gasEstimate) * 4n > 500000n ? BigInt(gasEstimate) * 4n : 500000n) 
+        : 500000n;
 
-      // Force legacy gas price calculation for SCAI compatibility
+      // Safe Gas Price: Force at least 3 Gwei to avoid congestion stalls
       const feeData = await publicClient.estimateFeesPerGas();
-      const gasPrice = feeData?.gasPrice ? (BigInt(feeData.gasPrice) * 120n) / 100n : undefined;
+      const networkGasPrice = feeData?.gasPrice || 0n;
+      const bufferGasPrice = (networkGasPrice * 120n) / 100n; // 20% buffer on top of network
+      const minGasPrice = parseGwei('3');
+      const gasPrice = bufferGasPrice > minGasPrice ? bufferGasPrice : minGasPrice;
 
       setStatus('Confirm Legacy Mint (Type 0) in Wallet...');
 
