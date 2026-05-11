@@ -3,81 +3,84 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 const Particles = () => {
+  const count = 1500;
   const mesh = useRef();
-  const count = 3000;
   
-  const dummy = useMemo(() => new THREE.Object3D(), []);
-  
-  const particles = useMemo(() => {
-    const temp = [];
+  // Create a BufferGeometry for maximum performance
+  const [positions, initialPositions, step] = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    const initialPos = new Float32Array(count * 3);
+    const stepArr = new Float32Array(count);
+    
     for (let i = 0; i < count; i++) {
-      const t = Math.random() * 100;
-      const factor = 20 + Math.random() * 100;
-      const speed = 0.01 + Math.random() / 200;
-      const xFactor = -50 + Math.random() * 100;
-      const yFactor = -50 + Math.random() * 100;
-      const zFactor = -50 + Math.random() * 100;
-      temp.push({ t, factor, speed, xFactor, yFactor, zFactor, mx: 0, my: 0 });
+      const x = -50 + Math.random() * 100;
+      const y = -50 + Math.random() * 100;
+      const z = -50 + Math.random() * 100;
+      
+      pos[i * 3] = x;
+      pos[i * 3 + 1] = y;
+      pos[i * 3 + 2] = z;
+      
+      initialPos[i * 3] = x;
+      initialPos[i * 3 + 1] = y;
+      initialPos[i * 3 + 2] = z;
+      
+      stepArr[i] = Math.random() * 100;
     }
-    return temp;
+    return [pos, initialPos, stepArr];
   }, [count]);
 
   useFrame((state) => {
-    const time = state.clock.getElapsedTime();
+    const time = state.clock.getElapsedTime() * 0.5;
+    const { positions } = mesh.current.geometry.attributes;
     
-    // Only update every other frame or based on time to reduce CPU load
-    // But since it's instancedMesh, we can also just simplify the math
-    particles.forEach((particle, i) => {
-      let { t, factor, speed, xFactor, yFactor, zFactor } = particle;
+    for (let i = 0; i < count; i++) {
+      const i3 = i * 3;
+      const s = step[i];
       
-      const currentTime = t + time * speed;
-      
-      // Calculate base position with simplified math
-      let x = xFactor + Math.cos(currentTime) * factor * 0.1;
-      let y = yFactor + Math.sin(currentTime) * factor * 0.1;
-      let z = zFactor + Math.cos(currentTime) * factor * 0.1;
-
-      // Only check mouse if it's actually moving (optional performance gain)
-      const mouseX = (state.pointer.x * state.viewport.width) / 2;
-      const mouseY = (state.pointer.y * state.viewport.height) / 2;
-      const dx = mouseX - x;
-      const dy = mouseY - y;
-      const distanceSq = dx * dx + dy * dy; // Use distance squared to avoid sqrt
-      
-      if (distanceSq < 100) { // 10^2
-        x -= dx * 0.02;
-        y -= dy * 0.02;
-      }
-
-      dummy.position.set(x, y, z);
-      dummy.updateMatrix();
-      mesh.current.setMatrixAt(i, dummy.matrix);
-    });
+      // Efficient sine-based movement
+      positions.array[i3] = initialPositions[i3] + Math.sin(time + s) * 2;
+      positions.array[i3 + 1] = initialPositions[i3 + 1] + Math.cos(time + s) * 2;
+      positions.array[i3 + 2] = initialPositions[i3 + 2] + Math.sin(time * 0.5 + s) * 2;
+    }
     
-    mesh.current.instanceMatrix.needsUpdate = true;
-    
-    // Request next frame only if needed - but here we want smooth particles
-    // so we just keep it but optimized.
+    positions.needsUpdate = true;
   });
 
   return (
-    <instancedMesh ref={mesh} args={[null, null, count]}>
-      <sphereGeometry args={[0.05, 8, 8]} />
-      <meshBasicMaterial color="#45A29E" transparent opacity={0.6} />
-    </instancedMesh>
+    <points ref={mesh}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={positions.length / 3}
+          array={positions}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.15}
+        color="#66FCF1"
+        transparent
+        opacity={0.4}
+        sizeAttenuation
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
   );
 };
 
 const ParticleGrid = () => {
-  const containerRef = useRef();
-  
   return (
-    <div ref={containerRef} className="absolute inset-0 pointer-events-none">
+    <div className="absolute inset-0 pointer-events-none opacity-50">
       <Canvas 
         camera={{ fov: 75, position: [0, 0, 30] }}
-        dpr={[1, 2]} // Optimize for high-DPI screens
-        gl={{ antialias: false, powerPreference: "high-performance" }} // Reduce load
-        frameloop="always" // Restore continuous animation
+        dpr={1} // Force 1x resolution for background points (massive GPU saving)
+        gl={{ 
+          antialias: false, 
+          powerPreference: "high-performance",
+          alpha: true 
+        }}
+        frameloop="always"
       >
         <Particles />
       </Canvas>
