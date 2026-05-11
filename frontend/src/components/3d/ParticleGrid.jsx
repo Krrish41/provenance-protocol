@@ -77,7 +77,7 @@ const ParticleGrid = () => {
         camera={{ fov: 75, position: [0, 0, 30] }}
         dpr={[1, 2]} // Optimize for high-DPI screens
         gl={{ antialias: false, powerPreference: "high-performance" }} // Reduce load
-        frameloop="demand" // Only render on change (or use clock)
+        frameloop="always" // Restore continuous animation
       >
         <Particles />
       </Canvas>
