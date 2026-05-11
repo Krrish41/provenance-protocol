@@ -2,44 +2,51 @@ import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const Particles = ({ count = 800 }) => {
-  const points = useRef();
+const Particles = ({ count = 500 }) => {
+  const mesh = useRef();
+  const dummy = useMemo(() => new THREE.Object3D(), []);
 
   const particles = useMemo(() => {
-    const temp = new Float32Array(count * 3);
+    const temp = [];
     for (let i = 0; i < count; i++) {
-      temp[i * 3] = (Math.random() - 0.5) * 100;
-      temp[i * 3 + 1] = (Math.random() - 0.5) * 100;
-      temp[i * 3 + 2] = (Math.random() - 0.5) * 100;
+      const x = (Math.random() - 0.5) * 100;
+      const y = (Math.random() - 0.5) * 100;
+      const z = (Math.random() - 0.5) * 100;
+      const speed = 0.1 + Math.random() * 0.5;
+      temp.push({ x, y, z, speed, offset: Math.random() * 100 });
     }
     return temp;
   }, [count]);
 
   useFrame((state) => {
-    points.current.rotation.y = state.clock.getElapsedTime() * 0.05;
-    points.current.rotation.x = state.clock.getElapsedTime() * 0.02;
+    const time = state.clock.getElapsedTime();
+    
+    particles.forEach((p, i) => {
+      const { x, y, z, speed, offset } = p;
+      // Smooth floating movement
+      const xPos = x + Math.sin(time * speed + offset) * 2;
+      const yPos = y + Math.cos(time * speed + offset) * 2;
+      const zPos = z + Math.sin(time * speed * 0.5 + offset) * 2;
+      
+      dummy.position.set(xPos, yPos, zPos);
+      dummy.updateMatrix();
+      mesh.current.setMatrixAt(i, dummy.matrix);
+    });
+    
+    mesh.current.instanceMatrix.needsUpdate = true;
   });
 
   return (
-    <points ref={points}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={particles.length / 3}
-          array={particles}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.8}
-        color="#66FCF1"
-        transparent
-        opacity={0.4}
-        sizeAttenuation={true}
+    <instancedMesh ref={mesh} args={[null, null, count]}>
+      {/* Icosahedron with 0 detail is only 20 faces - ultra efficient for "sphere" look */}
+      <icosahedronGeometry args={[0.15, 0]} />
+      <meshBasicMaterial 
+        color="#66FCF1" 
+        transparent 
+        opacity={0.6} 
         blending={THREE.AdditiveBlending}
-        depthWrite={false}
       />
-    </points>
+    </instancedMesh>
   );
 };
 
@@ -48,14 +55,14 @@ const ParticleGrid = () => {
     <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -1 }}>
       <Canvas 
         camera={{ position: [0, 0, 50], fov: 60 }}
-        dpr={1} // CRITICAL: Force 1x resolution to save GPU
+        dpr={1} // Keep dpr low to save GPU
         gl={{ 
           antialias: false, 
           alpha: true,
           powerPreference: "high-performance"
         }}
       >
-        <Particles count={800} />
+        <Particles count={500} />
       </Canvas>
     </div>
   );
