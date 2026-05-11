@@ -4,7 +4,7 @@ import { parseEther, formatEther } from 'viem';
 import { usePublicClient, useWalletClient, useChainId, useAccount } from 'wagmi';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../../utils/contract';
 import toast from 'react-hot-toast';
-import { Tag, XCircle, RefreshCw, ChevronUp, DollarSign } from 'lucide-react';
+import { Tag, XCircle, RefreshCw, ChevronUp } from 'lucide-react';
 
 const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
   const cardRef = useRef(null);
@@ -165,17 +165,17 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
                 ) : (
                   <div className="space-y-4 w-full">
                     <div className="relative group/input">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#45A29E]">
-                        <DollarSign size={16} />
-                      </div>
                       <input 
                         type="number" 
-                        placeholder="New Price (SCAI)"
+                        placeholder="0.00"
                         value={newPrice}
                         onClick={(e) => e.stopPropagation()}
                         onChange={(e) => setNewPrice(e.target.value)}
-                        className="w-full bg-black/60 border border-[#45A29E]/40 rounded-xl py-4 pl-10 pr-4 text-white placeholder:text-gray-600 focus:border-[#66FCF1] outline-none transition-all"
+                        className="w-full bg-black/60 border border-[#45A29E]/40 rounded-xl py-4 pl-4 pr-16 text-white placeholder:text-gray-600 focus:border-[#66FCF1] outline-none transition-all font-mono"
                       />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[#66FCF1]/60 text-[10px] font-black uppercase tracking-widest pointer-events-none">
+                        SCAI
+                      </div>
                     </div>
                     
                     <button 
