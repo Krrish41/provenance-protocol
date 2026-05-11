@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { parseEther, formatEther, parseGwei } from 'viem';
 import { UploadCloud, Loader2, ShieldAlert, ExternalLink, AlertTriangle } from 'lucide-react';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
-import { uploadFileToIPFS, uploadJSONToIPFS } from '../utils/pinata';
+import { uploadFileToIPFS, uploadJSONToIPFS, unpinFromIPFS } from '../utils/pinata';
 import toast from 'react-hot-toast';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useWalletClient, useChainId, useSwitchChain } from 'wagmi';
 import { useWalletModal } from '../context/WalletModalContext';
@@ -11,7 +11,7 @@ import { useWalletModal } from '../context/WalletModalContext';
 const Mint = () => {
   const { isConnected, address } = useAccount();
   const chainId = useChainId();
-  const { switchChain } = useSwitchChain();
+  const { switchChainAsync } = useSwitchChain();
   const { openWalletModal } = useWalletModal();
   const publicClient = usePublicClient({ chainId: 34 });
   const { data: walletClient } = useWalletClient();
@@ -76,12 +76,15 @@ const Mint = () => {
     setUploading(true);
     setStatus('Initializing Pre-Flight Protocol...');
     
+    let uploadedImageURL = null;
+    let uploadedTokenURI = null;
+
     try {
-      // 1. Connection & Network Guard
+      // 1. Strict Network Guard
       if (!isConnected || !address) throw new Error("Please connect your wallet first.");
       if (chainId !== 34) {
         setStatus('Switching to SecureChain AI Mainnet...');
-        await switchChain({ chainId: 34 });
+        await switchChainAsync({ chainId: 34 });
         throw new Error("Network switched. Please initiate minting again.");
       }
 
@@ -101,13 +104,11 @@ const Mint = () => {
       const estimatedGasLimit = 500000n;
       const estimatedGasCost = estimatedGasLimit * minGasPrice;
       
-      const totalRequired = listingPrice + estimatedGasCost + priceInWei; // Listing fee + Buffer Gas
       if (balance < (listingPrice + estimatedGasCost)) {
         throw new Error(`Insufficient balance for gas and fees. Required: ~${formatEther(listingPrice + estimatedGasCost)} SCAI`);
       }
 
-      // 3. Dry-Run Simulation (The Gatekeeper)
-      // We simulate with a dummy URI to ensure the contract logic is valid for this user
+      // 3. Dry-Run Simulation
       setStatus('Executing Transaction Dry-Run...');
       const dummyURI = "ipfs://pre-flight-check-signature";
       
@@ -121,54 +122,58 @@ const Mint = () => {
           account: address,
         });
       } catch (simError) {
-        console.error("Simulation failed:", simError);
         throw new Error(`Execution dry-run failed: ${simError.shortMessage || "Contract revert detected."}`);
       }
 
-      // 4. IPFS Upload (Only triggered if simulation passes)
+      // 4. IPFS Upload (Gatekeeper Passed)
       setStatus('Gatekeeper Passed. Synchronizing Media to IPFS...');
-      const imageURL = await uploadFileToIPFS(file);
-      const metadata = { name, description, image: imageURL };
-      const realTokenURI = await uploadJSONToIPFS(metadata);
+      uploadedImageURL = await uploadFileToIPFS(file);
+      const metadata = { name, description, image: uploadedImageURL };
+      uploadedTokenURI = await uploadJSONToIPFS(metadata);
 
-      // 5. Final Execution with Real Data
+      // 5. Final Execution with Cleanup Logic
       setStatus('Awaiting Final Wallet Confirmation...');
       
-      // Final Gas Hardening for the actual payload
       const feeData = await publicClient.estimateFeesPerGas();
       const networkGasPrice = feeData?.gasPrice || 0n;
       const gasPrice = (networkGasPrice * 125n / 100n) > minGasPrice ? (networkGasPrice * 125n / 100n) : minGasPrice;
 
       if (!walletClient) throw new Error("Wallet connection lost. Please try again.");
 
-      const hash = await walletClient.writeContract({
-        address: MARKETPLACE_ADDRESS,
-        abi: NFTMarketplaceABI,
-        functionName: 'createToken',
-        args: [realTokenURI, priceInWei],
-        value: listingPrice,
-        account: address,
-        chainId: 34,
-        type: 'legacy',
-        gas: estimatedGasLimit, // Use our safe 500k buffer directly
-        gasPrice: gasPrice,
-      });
+      try {
+        const hash = await walletClient.writeContract({
+          address: MARKETPLACE_ADDRESS,
+          abi: NFTMarketplaceABI,
+          functionName: 'createToken',
+          args: [uploadedTokenURI, priceInWei],
+          value: listingPrice,
+          account: address,
+          chainId: 34,
+          type: 'legacy',
+          gas: estimatedGasLimit,
+          gasPrice: gasPrice,
+        });
+        setTxHash(hash);
+      } catch (writeError) {
+        // CLEANUP: If user rejects, remove orphan data from Pinata
+        if (writeError.name === 'UserRejectedRequestError' || writeError.message?.toLowerCase().includes('rejected')) {
+          setStatus('Cleanup: Request denied. Removing orphan IPFS data...');
+          await Promise.all([
+            unpinFromIPFS(uploadedImageURL),
+            unpinFromIPFS(uploadedTokenURI)
+          ]);
+        }
+        throw writeError;
+      }
 
-      setTxHash(hash);
-      
-      const explorerUrl = `https://explorer.securechain.ai/tx/${hash}`;
+      const explorerUrl = `https://explorer.securechain.ai/tx/${txHash}`;
       setStatus(
         <div className="flex flex-col items-center gap-2">
           <div className="flex items-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin" />
             <span>Success! Inscribing on SecureChain...</span>
           </div>
-          <a 
-            href={explorerUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[#66FCF1] underline hover:text-white transition-colors text-xs"
-          >
+          <a href={explorerUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[#66FCF1] underline text-xs">
             Monitor Transaction <ExternalLink className="w-3 h-3" />
           </a>
         </div>

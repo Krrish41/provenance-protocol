@@ -33,3 +33,20 @@ export const uploadJSONToIPFS = async (JSONBody) => {
         throw error;
     }
 }
+
+export const unpinFromIPFS = async (hashOrUrl) => {
+    if (!hashOrUrl) return;
+    try {
+        // Extract hash from URL if necessary
+        const hash = hashOrUrl.includes('ipfs/') ? hashOrUrl.split('ipfs/').pop() : hashOrUrl;
+        
+        await axios.delete(`https://api.pinata.cloud/pinning/unpin/${hash}`, {
+            headers: {
+                'Authorization': `Bearer ${PINATA_JWT}`,
+            }
+        });
+        console.log(`Successfully unpinned: ${hash}`);
+    } catch (error) {
+        console.error("Error unpinning from Pinata:", error);
+    }
+}
