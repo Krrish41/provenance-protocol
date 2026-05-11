@@ -224,9 +224,14 @@ const Dashboard = () => {
           
           {loading ? (
             <SkeletonLoader />
-          ) : listedNfts.length === 0 ? (
-            <div className="py-20 border-2 border-dashed border-[#45A29E]/10 rounded-3xl text-center bg-black/20">
+            <div className="py-20 border-2 border-dashed border-[#45A29E]/10 rounded-3xl text-center bg-black/20 flex flex-col items-center justify-center gap-4">
               <p className="text-gray-500 font-medium">You don't have any items listed for sale.</p>
+              <Link 
+                to="/mint"
+                className="bg-[#66FCF1] text-[#0B0C10] px-8 py-3 rounded-xl hover:bg-[#45A29E] transition-all text-sm uppercase font-black tracking-widest flex items-center gap-2 shadow-[0_0_20px_rgba(102,252,241,0.2)]"
+              >
+                <Plus size={18} /> Mint New Asset
+              </Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
@@ -261,20 +266,12 @@ const Dashboard = () => {
           ) : ownedNfts.length === 0 ? (
             <div className="py-20 border-2 border-dashed border-[#45A29E]/10 rounded-3xl text-center bg-black/20">
               <p className="text-[#45A29E] font-medium mb-4">Your collection is currently empty.</p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link 
-                  to="/mint"
-                  className="bg-[#66FCF1] text-[#0B0C10] px-8 py-3 rounded-xl hover:bg-[#45A29E] transition-all text-sm uppercase font-black tracking-widest flex items-center gap-2 shadow-[0_0_20px_rgba(102,252,241,0.2)]"
-                >
-                  <Plus size={18} /> Mint New Asset
-                </Link>
-                <Link 
-                  to="/explore"
-                  className="text-[#66FCF1] border border-[#66FCF1]/30 px-8 py-3 rounded-xl hover:bg-[#66FCF1]/10 transition-all text-sm uppercase font-bold tracking-widest"
-                >
-                  Explore Marketplace
-                </Link>
-              </div>
+              <Link 
+                to="/explore"
+                className="inline-block text-[#66FCF1] border border-[#66FCF1]/30 px-8 py-3 rounded-xl hover:bg-[#66FCF1]/10 transition-all text-sm uppercase font-bold tracking-widest"
+              >
+                Explore Marketplace
+              </Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
