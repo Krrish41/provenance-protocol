@@ -86,28 +86,42 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
 
     setLoading(true);
     try {
-      // ZERO-TRUST: Fetch the latest contract state directly before transaction
-      // This bypasses any stale state in the Dashboard
-      const marketItems = await publicClient.readContract({
-        address: MARKETPLACE_ADDRESS,
-        abi: NFTMarketplaceABI,
-        functionName: 'fetchMarketItems',
-      });
+      // 1. Fetch deep ownership state
+      const [marketItems, actualOwner] = await Promise.all([
+        publicClient.readContract({
+          address: MARKETPLACE_ADDRESS,
+          abi: NFTMarketplaceABI,
+          functionName: 'fetchMarketItems',
+        }),
+        publicClient.readContract({
+          address: MARKETPLACE_ADDRESS,
+          abi: NFTMarketplaceABI,
+          functionName: 'ownerOf',
+          args: [BigInt(item.tokenId)]
+        }).catch(() => "Unknown/Not Minted")
+      ]);
 
       const currentItem = marketItems.find(i => Number(i.tokenId) === Number(item.tokenId));
       
-      console.log("🔍 ON-CHAIN VERIFICATION:", {
-        contractSeller: currentItem?.seller?.toLowerCase(),
-        walletSigner: address.toLowerCase(),
-        isMatch: currentItem?.seller?.toLowerCase() === address.toLowerCase()
+      console.log("🚨 DEEP OWNERSHIP CHECK:", {
+        tokenId: item.tokenId,
+        sellerInMapping: currentItem?.seller?.toLowerCase(),
+        ownerInMapping: currentItem?.owner?.toLowerCase(),
+        actualOwnerOfToken: actualOwner.toLowerCase(),
+        marketplaceAddress: MARKETPLACE_ADDRESS.toLowerCase(),
+        isContractOwner: actualOwner.toLowerCase() === MARKETPLACE_ADDRESS.toLowerCase()
       });
 
       if (!currentItem) {
-        throw new Error("Listing not found on-chain. It may have been sold or already delisted.");
+        throw new Error("Listing not found in market data.");
+      }
+
+      if (actualOwner.toLowerCase() !== MARKETPLACE_ADDRESS.toLowerCase()) {
+        throw new Error("Contract Custody Error: The marketplace contract does not actually hold this NFT ID. It may have been transferred elsewhere.");
       }
 
       if (currentItem.seller.toLowerCase() !== address.toLowerCase()) {
-        throw new Error(`Owner Mismatch! Contract says seller is ${currentItem.seller.slice(0,6)}... but you are ${address.slice(0,6)}...`);
+        throw new Error(`Owner Mismatch! You are ${address.slice(0,6)}, but seller is ${currentItem.seller.slice(0,6)}`);
       }
 
       const hash = await walletClient.writeContract({
@@ -117,9 +131,9 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         args: [BigInt(item.tokenId)],
         chainId: 34,
         type: 'legacy',
-        gas: 600000n, // Increased gas buffer
+        gas: 600000n,
         gasPrice: parseGwei('3.5'),
-        account: address, // Enforce the signer
+        account: address,
       });
       
       const loadingToast = toast.loading("Cancelling listing on-chain...");
@@ -127,7 +141,7 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
       toast.dismiss(loadingToast);
 
       if (receipt.status === 'reverted') {
-        throw new Error("Cancellation reverted. Ensure you have enough gas and are the original seller.");
+        throw new Error("Blockchain Revert: The network rejected this transaction. This usually means the NFT state is out of sync.");
       }
 
       toast.success("Listing removed!");
