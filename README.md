@@ -10,7 +10,7 @@ Built with a rigorous focus on security, gas efficiency, and optimized user expe
 
 The smart contracts for the Provenance Protocol are deployed directly on the **SCAI Mainnet**.
 
-* **Smart Contract Address:** `0x5Adc8E4034d032AF392c2C6cB508fF05D781e5c4`
+* **Smart Contract Address:** `0xed83F8A06dCa0624037DB45AF909a17e88550DCA`
 * **Live Demo (Vercel):** [https://provenance-protocol.vercel.app](https://provenance-protocol.vercel.app)
 
 ---
