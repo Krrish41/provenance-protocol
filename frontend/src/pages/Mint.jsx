@@ -74,77 +74,84 @@ const Mint = () => {
     }
     
     setUploading(true);
-    setStatus('Uploading assets to IPFS...');
+    setStatus('Initializing Pre-Flight Protocol...');
+    
     try {
-      // 1. IPFS Upload
-      const imageURL = await uploadFileToIPFS(file);
-      const metadata = { name, description, image: imageURL };
-      const tokenURI = await uploadJSONToIPFS(metadata);
-
-      setStatus('Preparing transaction...');
-
-      // 2. Network Check (Redundant but safe)
+      // 1. Connection & Network Guard
+      if (!isConnected || !address) throw new Error("Please connect your wallet first.");
       if (chainId !== 34) {
-        setStatus('Switching network...');
+        setStatus('Switching to SecureChain AI Mainnet...');
         await switchChain({ chainId: 34 });
-        throw new Error("Switched network. Please try minting again.");
+        throw new Error("Network switched. Please initiate minting again.");
       }
 
-      // 3. Contract Logic Preparation
-      const listingPrice = await publicClient.readContract({
-        address: MARKETPLACE_ADDRESS,
-        abi: NFTMarketplaceABI,
-        functionName: 'getListingPrice',
-      });
+      // 2. Pre-Flight Balance & Cost Check
+      setStatus('Verifying Fuel Reserves (SCAI)...');
+      const [balance, listingPrice] = await Promise.all([
+        publicClient.getBalance({ address }),
+        publicClient.readContract({
+          address: MARKETPLACE_ADDRESS,
+          abi: NFTMarketplaceABI,
+          functionName: 'getListingPrice',
+        })
+      ]);
 
       const priceInWei = parseEther(formInput.price);
+      const minGasPrice = parseGwei('3');
+      const estimatedGasLimit = 500000n;
+      const estimatedGasCost = estimatedGasLimit * minGasPrice;
+      
+      const totalRequired = listingPrice + estimatedGasCost + priceInWei; // Listing fee + Buffer Gas
+      if (balance < (listingPrice + estimatedGasCost)) {
+        throw new Error(`Insufficient balance for gas and fees. Required: ~${formatEther(listingPrice + estimatedGasCost)} SCAI`);
+      }
 
-      setStatus('Simulating & Estimating Gas...');
+      // 3. Dry-Run Simulation (The Gatekeeper)
+      // We simulate with a dummy URI to ensure the contract logic is valid for this user
+      setStatus('Executing Transaction Dry-Run...');
+      const dummyURI = "ipfs://pre-flight-check-signature";
+      
+      try {
+        await publicClient.simulateContract({
+          address: MARKETPLACE_ADDRESS,
+          abi: NFTMarketplaceABI,
+          functionName: 'createToken',
+          args: [dummyURI, priceInWei],
+          value: listingPrice,
+          account: address,
+        });
+      } catch (simError) {
+        console.error("Simulation failed:", simError);
+        throw new Error(`Execution dry-run failed: ${simError.shortMessage || "Contract revert detected."}`);
+      }
 
-      // 4. Gas & Fee Hardening
-      // We simulate first to ensure the tx will succeed
-      const { request } = await publicClient.simulateContract({
-        address: MARKETPLACE_ADDRESS,
-        abi: NFTMarketplaceABI,
-        functionName: 'createToken',
-        args: [tokenURI, priceInWei],
-        value: listingPrice,
-        account: address,
-      });
+      // 4. IPFS Upload (Only triggered if simulation passes)
+      setStatus('Gatekeeper Passed. Synchronizing Media to IPFS...');
+      const imageURL = await uploadFileToIPFS(file);
+      const metadata = { name, description, image: imageURL };
+      const realTokenURI = await uploadJSONToIPFS(metadata);
 
-      const gasEstimate = await publicClient.estimateGas({
-        ...request,
-        account: address,
-      });
-
-      // Hardened Gas Limit: Use 4x multiplier with a safe floor of 500,000 units
-      const gasLimit = gasEstimate 
-        ? (BigInt(gasEstimate) * 4n > 500000n ? BigInt(gasEstimate) * 4n : 500000n) 
-        : 500000n;
-
-      // Safe Gas Price: Force at least 3 Gwei to avoid congestion stalls
+      // 5. Final Execution with Real Data
+      setStatus('Awaiting Final Wallet Confirmation...');
+      
+      // Final Gas Hardening for the actual payload
       const feeData = await publicClient.estimateFeesPerGas();
       const networkGasPrice = feeData?.gasPrice || 0n;
-      const bufferGasPrice = (networkGasPrice * 120n) / 100n; // 20% buffer on top of network
-      const minGasPrice = parseGwei('3');
-      const gasPrice = bufferGasPrice > minGasPrice ? bufferGasPrice : minGasPrice;
+      const gasPrice = (networkGasPrice * 125n / 100n) > minGasPrice ? (networkGasPrice * 125n / 100n) : minGasPrice;
 
-      setStatus('Confirm Legacy Mint (Type 0) in Wallet...');
-
-      // 5. Raw EXECUTION: Bypass hooks to ensure strictly legacy payload
-      if (!walletClient) throw new Error("Wallet not fully initialized. Please try again.");
+      if (!walletClient) throw new Error("Wallet connection lost. Please try again.");
 
       const hash = await walletClient.writeContract({
         address: MARKETPLACE_ADDRESS,
         abi: NFTMarketplaceABI,
         functionName: 'createToken',
-        args: [tokenURI, priceInWei],
+        args: [realTokenURI, priceInWei],
         value: listingPrice,
         account: address,
         chainId: 34,
-        type: 'legacy',               
-        gas: gasLimit,           
-        gasPrice: gasPrice,   
+        type: 'legacy',
+        gas: estimatedGasLimit, // Use our safe 500k buffer directly
+        gasPrice: gasPrice,
       });
 
       setTxHash(hash);
@@ -154,7 +161,7 @@ const Mint = () => {
         <div className="flex flex-col items-center gap-2">
           <div className="flex items-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Transaction Sent! Waiting for block...</span>
+            <span>Success! Inscribing on SecureChain...</span>
           </div>
           <a 
             href={explorerUrl} 
@@ -162,27 +169,19 @@ const Mint = () => {
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-[#66FCF1] underline hover:text-white transition-colors text-xs"
           >
-            View on Explorer <ExternalLink className="w-3 h-3" />
+            Monitor Transaction <ExternalLink className="w-3 h-3" />
           </a>
         </div>
       );
 
     } catch (error) {
-      console.error("Minting error:", error);
-      let errorMessage = 'Minting failed';
+      console.error("Minting lifecycle error:", error);
+      let errorMessage = error.shortMessage || error.message || 'Workflow execution failed';
 
-      // Parse common error patterns
       if (error.message?.includes('User rejected')) {
-        errorMessage = 'Transaction rejected by user.';
+        errorMessage = 'Transaction signature denied by user.';
       } else if (error.message?.includes('insufficient funds')) {
-        errorMessage = 'Insufficient SCAI for gas + listing price.';
-      } else if (error.message?.includes('-32603') || error.message?.includes('rate limit')) {
-        errorMessage = 'RPC node is rate limited. Retrying in background...';
-        // Logic to potentially retry would go here, but Wagmi handles some retries
-      } else if (error.message?.includes('exceeds block gas limit')) {
-        errorMessage = 'Gas limit too high or block full. Try again shortly.';
-      } else {
-        errorMessage = error.shortMessage || error.message || 'Unknown execution error';
+        errorMessage = 'Insufficient SCAI balance for this operation.';
       }
 
       toast.error(errorMessage);
