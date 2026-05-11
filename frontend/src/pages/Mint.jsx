@@ -99,11 +99,6 @@ const Mint = () => {
       ]);
 
       const priceInWei = parseEther(formInput.price);
-      const minGasPrice = parseGwei('3');
-      const estimatedGasLimit = 500000n;
-      const estimatedGasCost = estimatedGasLimit * minGasPrice;
-      
-      if (balance < (listingPrice + estimatedGasCost)) {
       
       if (balance < listingPrice) {
         throw new Error(`Insufficient balance for fees. Required: ~${formatEther(listingPrice)} SCAI`);
