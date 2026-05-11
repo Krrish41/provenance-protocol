@@ -55,7 +55,7 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         value: listingPrice,
         chainId: 34,
         type: 'legacy',
-        gas: 500000n,
+        gas: 1000000n,
         gasPrice: parseGwei('3.5'),
         account: address,
       });
@@ -65,7 +65,7 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
       toast.dismiss(loadingToast);
 
       if (receipt.status === 'reverted') {
-        throw new Error("Transaction reverted on-chain. Please check if you are the owner.");
+        throw new Error("Transaction reverted on-chain.");
       }
 
       toast.success("Asset listed on market!");
@@ -82,48 +82,29 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
   const handleCancel = async (e) => {
     e.stopPropagation();
     if (chainId !== 34) return toast.error("Switch to SecureChain AI Mainnet");
-    if (!address || !walletClient) return toast.error("Wallet not connected");
+    if (!address || !walletClient || !publicClient) return toast.error("Client not ready");
 
     setLoading(true);
     try {
-      // 1. Fetch deep ownership state
-      const [marketItems, actualOwner] = await Promise.all([
-        publicClient.readContract({
+      // 1. Pre-transaction simulation (This gets the REAL error from contract)
+      console.log("🛠️ SIMULATING TRANSACTION...");
+      try {
+        await publicClient.simulateContract({
           address: MARKETPLACE_ADDRESS,
           abi: NFTMarketplaceABI,
-          functionName: 'fetchMarketItems',
-        }),
-        publicClient.readContract({
-          address: MARKETPLACE_ADDRESS,
-          abi: NFTMarketplaceABI,
-          functionName: 'ownerOf',
-          args: [BigInt(item.tokenId)]
-        }).catch(() => "Unknown/Not Minted")
-      ]);
-
-      const currentItem = marketItems.find(i => Number(i.tokenId) === Number(item.tokenId));
-      
-      console.log("🚨 DEEP OWNERSHIP CHECK:", {
-        tokenId: item.tokenId,
-        sellerInMapping: currentItem?.seller?.toLowerCase(),
-        ownerInMapping: currentItem?.owner?.toLowerCase(),
-        actualOwnerOfToken: actualOwner.toLowerCase(),
-        marketplaceAddress: MARKETPLACE_ADDRESS.toLowerCase(),
-        isContractOwner: actualOwner.toLowerCase() === MARKETPLACE_ADDRESS.toLowerCase()
-      });
-
-      if (!currentItem) {
-        throw new Error("Listing not found in market data.");
+          functionName: 'cancelListing',
+          args: [BigInt(item.tokenId)],
+          account: address,
+        });
+        console.log("✅ SIMULATION SUCCESSFUL - Sending to wallet...");
+      } catch (simErr) {
+        console.error("🛑 SIMULATION FAILED:", simErr);
+        // Extract the revert reason if possible
+        const reason = simErr.walk?.().data?.errorName || simErr.shortMessage || "Contract logic error";
+        throw new Error(`Blockchain Simulation Failed: ${reason}`);
       }
 
-      if (actualOwner.toLowerCase() !== MARKETPLACE_ADDRESS.toLowerCase()) {
-        throw new Error("Contract Custody Error: The marketplace contract does not actually hold this NFT ID. It may have been transferred elsewhere.");
-      }
-
-      if (currentItem.seller.toLowerCase() !== address.toLowerCase()) {
-        throw new Error(`Owner Mismatch! You are ${address.slice(0,6)}, but seller is ${currentItem.seller.slice(0,6)}`);
-      }
-
+      // 2. Execute transaction with high gas limit
       const hash = await walletClient.writeContract({
         address: MARKETPLACE_ADDRESS,
         abi: NFTMarketplaceABI,
@@ -131,7 +112,7 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         args: [BigInt(item.tokenId)],
         chainId: 34,
         type: 'legacy',
-        gas: 600000n,
+        gas: 1000000n, // Very high safety limit
         gasPrice: parseGwei('3.5'),
         account: address,
       });
@@ -141,14 +122,14 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
       toast.dismiss(loadingToast);
 
       if (receipt.status === 'reverted') {
-        throw new Error("Blockchain Revert: The network rejected this transaction. This usually means the NFT state is out of sync.");
+        throw new Error("Transaction reverted after broadcast. Possible gas or state collision.");
       }
 
       toast.success("Listing removed!");
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error("Cancel error:", err);
-      toast.error(err.shortMessage || err.message || "Cancellation failed");
+      toast.error(err.message || "Cancellation failed");
     } finally {
       setLoading(false);
     }
