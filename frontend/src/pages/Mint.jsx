@@ -104,7 +104,9 @@ const Mint = () => {
       const estimatedGasCost = estimatedGasLimit * minGasPrice;
       
       if (balance < (listingPrice + estimatedGasCost)) {
-        throw new Error(`Insufficient balance for gas and fees. Required: ~${formatEther(listingPrice + estimatedGasCost)} SCAI`);
+      
+      if (balance < listingPrice) {
+        throw new Error(`Insufficient balance for fees. Required: ~${formatEther(listingPrice)} SCAI`);
       }
 
       // 3. Dry-Run Simulation
@@ -130,15 +132,6 @@ const Mint = () => {
       const metadata = { name, description, image: uploadedImageURL };
       uploadedTokenURI = await uploadJSONToIPFS(metadata);
 
-      // 5. Final Execution with Cleanup Logic
-      setStatus('Awaiting Final Wallet Confirmation...');
-      
-      const feeData = await publicClient.estimateFeesPerGas();
-      const networkGasPrice = feeData?.gasPrice || 0n;
-      const gasPrice = (networkGasPrice * 125n / 100n) > minGasPrice ? (networkGasPrice * 125n / 100n) : minGasPrice;
-
-      if (!walletClient) throw new Error("Wallet connection not found for SecureChain. Please ensure you are on the correct network.");
-
       try {
         const hash = await walletClient.writeContract({
           address: MARKETPLACE_ADDRESS,
@@ -148,9 +141,6 @@ const Mint = () => {
           value: listingPrice,
           account: address,
           chainId: 34,
-          type: 'legacy',
-          gas: estimatedGasLimit,
-          gasPrice: gasPrice,
         });
         setTxHash(hash);
       } catch (writeError) {

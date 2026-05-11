@@ -140,29 +140,6 @@ const Explore = () => {
 
       const price = parseEther(nft.price.toString());
 
-      // 1. Gas Estimation with 4x Hardening
-      const gasEstimate = await publicClient.estimateGas({
-        address: MARKETPLACE_ADDRESS,
-        abi: NFTMarketplaceABI,
-        functionName: 'createMarketSale',
-        args: [nft.tokenId],
-        value: price,
-        account: currentAddr,
-      });
-
-      const gasLimit = gasEstimate 
-        ? (BigInt(gasEstimate) * 4n > 500000n ? BigInt(gasEstimate) * 4n : 500000n) 
-        : 500000n;
-
-      // 2. Safe Gas Price (Min 3 Gwei)
-      const feeData = await publicClient.estimateFeesPerGas();
-      const networkGasPrice = feeData?.gasPrice || 0n;
-      const bufferGasPrice = (networkGasPrice * 120n) / 100n;
-      const minGasPrice = parseGwei('3');
-      const gasPrice = bufferGasPrice > minGasPrice ? bufferGasPrice : minGasPrice;
-
-      toast.loading("Confirming purchase in wallet...", { id: loadingToast });
-
       const hash = await writeContractAsync({
         address: MARKETPLACE_ADDRESS,
         abi: NFTMarketplaceABI,
@@ -171,8 +148,6 @@ const Explore = () => {
         value: price,
         chainId: 34, // Explicitly target SCAI
         type: 'legacy',
-        gas: gasLimit,
-        gasPrice: gasPrice,
       });
 
       toast.loading("Transaction sent! Waiting for confirmation...", { id: loadingToast });
