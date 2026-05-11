@@ -224,6 +224,7 @@ const Dashboard = () => {
           
           {loading ? (
             <SkeletonLoader />
+          ) : listedNfts.length === 0 ? (
             <div className="py-20 border-2 border-dashed border-[#45A29E]/10 rounded-3xl text-center bg-black/20 flex flex-col items-center justify-center gap-4">
               <p className="text-gray-500 font-medium">You don't have any items listed for sale.</p>
               <Link 
