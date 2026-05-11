@@ -9,8 +9,7 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicCl
 import { useWalletModal } from '../context/WalletModalContext';
 
 const Mint = () => {
-  const { isConnected, address } = useAccount();
-  const chainId = useChainId();
+  const { isConnected, address, chainId } = useAccount();
   const { switchChainAsync } = useSwitchChain();
   const { openWalletModal } = useWalletModal();
   const publicClient = usePublicClient({ chainId: 34 });
@@ -138,7 +137,7 @@ const Mint = () => {
       const networkGasPrice = feeData?.gasPrice || 0n;
       const gasPrice = (networkGasPrice * 125n / 100n) > minGasPrice ? (networkGasPrice * 125n / 100n) : minGasPrice;
 
-      if (!walletClient) throw new Error("Wallet connection lost. Please try again.");
+      if (!walletClient) throw new Error("Wallet connection not found for SecureChain. Please ensure you are on the correct network.");
 
       try {
         const hash = await walletClient.writeContract({
@@ -310,9 +309,15 @@ const Mint = () => {
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => {
+            onClick={async () => {
               if (chainId !== 34) {
-                switchChain({ chainId: 34 });
+                try {
+                  setStatus('Switching to SecureChain AI Mainnet...');
+                  await switchChainAsync({ chainId: 34 });
+                } catch (e) {
+                  toast.error("Failed to switch network. Please do it manually in your wallet.");
+                  setStatus('');
+                }
               } else {
                 createMarketItem();
               }
