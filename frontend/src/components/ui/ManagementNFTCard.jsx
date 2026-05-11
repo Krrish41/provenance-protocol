@@ -18,6 +18,61 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
   const publicClient = usePublicClient({ chainId: 34 });
   const { data: walletClient } = useWalletClient();
 
+  const handleCancel = async (e) => {
+    e.stopPropagation();
+    if (chainId !== 34) return toast.error("Switch to SecureChain AI Mainnet");
+    if (!address || !walletClient) return toast.error("Wallet not connected");
+
+    setLoading(true);
+    const loadingToast = toast.loading("Checking wallet synchronization...");
+    
+    try {
+      console.log("🚀 INITIATING DELISTING FOR ID:", item.tokenId);
+      console.log("👤 SIGNER ADDRESS:", address);
+
+      // Force direct write without any pre-checks that might trigger RPC errors
+      const hash = await walletClient.writeContract({
+        address: MARKETPLACE_ADDRESS,
+        abi: NFTMarketplaceABI,
+        functionName: 'cancelListing',
+        args: [BigInt(item.tokenId)],
+        chainId: 34,
+        type: 'legacy',
+        gas: 800000n, 
+        gasPrice: parseGwei('4.0'), // Ultra priority
+        account: address,
+      });
+      
+      console.log("✅ METAMASK POPUP CONFIRMED. HASH:", hash);
+      toast.loading("Transaction sent! confirming on-chain...", { id: loadingToast });
+      
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      console.log("📄 TRANSACTION RECEIPT:", receipt);
+      
+      toast.dismiss(loadingToast);
+
+      if (receipt.status === 'reverted') {
+        throw new Error("The blockchain reverted this transaction. This usually means the contract mapping is out of sync with your wallet.");
+      }
+
+      toast.success("Listing removed successfully!");
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      console.error("❌ DELISTING FAILED:", err);
+      
+      const errorMessage = err.shortMessage || err.message || "Cancellation failed";
+      
+      if (errorMessage.includes("User rejected")) {
+        toast.error("Transaction cancelled by user");
+      } else {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleResell = async (e) => {
     e.stopPropagation();
     if (!newPrice || isNaN(newPrice) || parseFloat(newPrice) <= 0) {
@@ -43,67 +98,21 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         value: listingPrice,
         chainId: 34,
         type: 'legacy',
-        gas: 1000000n,
-        gasPrice: parseGwei('3.5'),
+        gas: 800000n,
+        gasPrice: parseGwei('4.0'),
         account: address,
       });
       
-      const loadingToast = toast.loading("Relisting asset on-chain...");
+      const loadingToast = toast.loading("Relisting asset...");
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       toast.dismiss(loadingToast);
 
-      if (receipt.status === 'reverted') {
-        throw new Error("Transaction reverted on-chain.");
-      }
-
-      toast.success("Asset listed on market!");
+      if (receipt.status === 'reverted') throw new Error("Reverted");
+      toast.success("Asset listed!");
       setNewPrice('');
       if (onRefresh) onRefresh();
     } catch (err) {
-      console.error("Resell error:", err);
-      toast.error(err.shortMessage || err.message || "Transaction failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancel = async (e) => {
-    e.stopPropagation();
-    if (chainId !== 34) return toast.error("Switch to SecureChain AI Mainnet");
-    if (!address || !walletClient) return toast.error("Wallet not connected");
-
-    setLoading(true);
-    const loadingToast = toast.loading("Confirming delisting request...");
-    
-    try {
-      // 1. Force the transaction through without simulation
-      // Simulation sometimes fails on custom chains like SCAI due to RPC quirks
-      const hash = await walletClient.writeContract({
-        address: MARKETPLACE_ADDRESS,
-        abi: NFTMarketplaceABI,
-        functionName: 'cancelListing',
-        args: [BigInt(item.tokenId)],
-        chainId: 34,
-        type: 'legacy',
-        gas: 1000000n, 
-        gasPrice: parseGwei('3.8'), // Slightly higher priority
-        account: address,
-      });
-      
-      toast.loading("Transaction sent! Waiting for confirmation...", { id: loadingToast });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      toast.dismiss(loadingToast);
-
-      if (receipt.status === 'reverted') {
-        throw new Error("Transaction reverted. Possible reasons: Wrong wallet account or NFT already delisted.");
-      }
-
-      toast.success("Listing removed successfully!");
-      if (onRefresh) onRefresh();
-    } catch (err) {
-      toast.dismiss(loadingToast);
-      console.error("Cancel error:", err);
-      toast.error(err.shortMessage || err.message || "Cancellation failed");
+      toast.error(err.shortMessage || "Transaction failed");
     } finally {
       setLoading(false);
     }
@@ -119,10 +128,8 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
       onMouseLeave={() => setIsHovered(false)}
       className="relative bg-[#1e2024]/80 border border-[#45A29E]/30 rounded-2xl overflow-hidden backdrop-blur-sm flex flex-col group h-full transition-all duration-300"
     >
-      {/* Optimized Shadow using Pseudo-element */}
       <div className="absolute inset-0 rounded-2xl shadow-[0_10px_40px_-10px_rgba(102,252,241,0.4)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-0" />
       
-      {/* Image Section - Clicking here still expands */}
       <div 
         onClick={() => onClick(item)}
         className="relative aspect-square overflow-hidden cursor-pointer"
@@ -133,7 +140,6 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
           className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
         />
         
-        {/* Status Badge */}
         <div className="absolute top-4 left-4 z-10">
           <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-md border ${
             isListed 
@@ -144,7 +150,6 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
           </span>
         </div>
 
-        {/* Premium Hover Overlay */}
         <AnimatePresence>
           {isHovered && (
             <motion.div 
@@ -199,17 +204,10 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
                       {loading ? <RefreshCw className="animate-spin" size={18} /> : <Tag size={18} />}
                       {loading ? "Listing..." : "LIST & SELL"}
                     </button>
-                    <p className="text-[9px] text-gray-500 italic">
-                      Listing fee: 0.025 SCAI applies
-                    </p>
                   </div>
                 )}
-
-                <button 
-                  onClick={() => setIsHovered(false)}
-                  className="text-gray-500 hover:text-white text-[10px] uppercase tracking-widest flex items-center gap-1 mx-auto pt-2"
-                >
-                  <ChevronUp size={12} /> Hide Controls
+                <button onClick={() => setIsHovered(false)} className="text-gray-500 hover:text-white text-[10px] uppercase tracking-widest pt-2 flex items-center gap-1 mx-auto">
+                  <ChevronUp size={12} /> Hide
                 </button>
               </div>
             </motion.div>
@@ -217,19 +215,12 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         </AnimatePresence>
       </div>
 
-      {/* Footer Info */}
       <div className="p-5 flex flex-col flex-grow bg-gradient-to-b from-transparent to-black/20">
         <div className="flex justify-between items-start mb-2">
-          <h3 className="text-xl font-bold text-white group-hover:text-[#66FCF1] transition-colors truncate">
-            {item.name}
-          </h3>
+          <h3 className="text-xl font-bold text-white group-hover:text-[#66FCF1] transition-colors truncate">{item.name}</h3>
           <span className="text-[#45A29E] text-xs font-mono">#{item.tokenId}</span>
         </div>
-        
-        <p className="text-[#C5C6C7] text-sm line-clamp-2 mb-4">
-          {item.description || "Secure NFT Asset"}
-        </p>
-        
+        <p className="text-[#C5C6C7] text-sm line-clamp-2 mb-4">{item.description || "Secure NFT Asset"}</p>
         <div className="mt-auto flex items-center justify-between pt-4 border-t border-[#45A29E]/10">
           <div>
             <p className="text-[10px] text-[#45A29E] uppercase tracking-wider mb-0.5">Valuation</p>
