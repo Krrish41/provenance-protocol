@@ -94,11 +94,13 @@ const Mint = () => {
         type: 'legacy',
       });
       
-      setTxHash(hash);
-      toast.success("Transaction submitted!");
+      if (hash) {
+        setTxHash(hash);
+        toast.success("Transaction submitted to SecureChain!");
+      }
 
     } catch (error) {
-      console.error("Minting failure:", error);
+      console.error("Minting lifecycle error:", error);
       setIsIpfsUploading(false);
       
       // Cleanup IPFS if wallet phase fails
