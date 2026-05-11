@@ -45,10 +45,6 @@ contract NFTMarketplace is ERC721URIStorage, ReentrancyGuard {
         listingPrice = _listingPrice;
     }
 
-    function getListingPrice() public view returns (uint256) {
-        return listingPrice;
-    }
-
     function createToken(string memory tokenURI, uint256 price) public payable returns (uint256) {
         _tokenIds++;
         uint256 newTokenId = _tokenIds;
@@ -128,8 +124,6 @@ contract NFTMarketplace is ERC721URIStorage, ReentrancyGuard {
     function fetchMyNFTs() public view returns (MarketItem[] memory) {
         uint256 totalItemCount = _tokenIds;
         uint256 itemCount = 0;
-        uint256 currentIndex = 0;
-
         for (uint256 i = 0; i < totalItemCount; i++) {
             if (idToMarketItem[i + 1].owner == msg.sender) {
                 itemCount += 1;
@@ -137,11 +131,11 @@ contract NFTMarketplace is ERC721URIStorage, ReentrancyGuard {
         }
 
         MarketItem[] memory items = new MarketItem[](itemCount);
+        uint256 currentIndex = 0;
         for (uint256 i = 0; i < totalItemCount; i++) {
             if (idToMarketItem[i + 1].owner == msg.sender) {
                 uint256 currentId = i + 1;
-                MarketItem storage currentItem = idToMarketItem[currentId];
-                items[currentIndex] = currentItem;
+                items[currentIndex] = idToMarketItem[currentId];
                 currentIndex += 1;
             }
         }
@@ -151,8 +145,6 @@ contract NFTMarketplace is ERC721URIStorage, ReentrancyGuard {
     function fetchItemsListed() public view returns (MarketItem[] memory) {
         uint256 totalItemCount = _tokenIds;
         uint256 itemCount = 0;
-        uint256 currentIndex = 0;
-
         for (uint256 i = 0; i < totalItemCount; i++) {
             if (idToMarketItem[i + 1].seller == msg.sender) {
                 itemCount += 1;
@@ -160,11 +152,11 @@ contract NFTMarketplace is ERC721URIStorage, ReentrancyGuard {
         }
 
         MarketItem[] memory items = new MarketItem[](itemCount);
+        uint256 currentIndex = 0;
         for (uint256 i = 0; i < totalItemCount; i++) {
             if (idToMarketItem[i + 1].seller == msg.sender) {
                 uint256 currentId = i + 1;
-                MarketItem storage currentItem = idToMarketItem[currentId];
-                items[currentIndex] = currentItem;
+                items[currentIndex] = idToMarketItem[currentId];
                 currentIndex += 1;
             }
         }
