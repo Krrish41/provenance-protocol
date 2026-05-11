@@ -2,26 +2,22 @@ import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const Particles = () => {
-  const count = 2000;
+const Particles = ({ count = 800 }) => {
   const points = useRef();
 
-  // Create positions once
   const particles = useMemo(() => {
-    const temp = [];
+    const temp = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      const x = (Math.random() - 0.5) * 100;
-      const y = (Math.random() - 0.5) * 100;
-      const z = (Math.random() - 0.5) * 100;
-      temp.push(x, y, z);
+      temp[i * 3] = (Math.random() - 0.5) * 100;
+      temp[i * 3 + 1] = (Math.random() - 0.5) * 100;
+      temp[i * 3 + 2] = (Math.random() - 0.5) * 100;
     }
-    return new Float32Array(temp);
+    return temp;
   }, [count]);
 
   useFrame((state) => {
-    const time = state.clock.getElapsedTime();
-    points.current.rotation.x = time * 0.05;
-    points.current.rotation.y = time * 0.075;
+    points.current.rotation.y = state.clock.getElapsedTime() * 0.05;
+    points.current.rotation.x = state.clock.getElapsedTime() * 0.02;
   });
 
   return (
@@ -35,10 +31,10 @@ const Particles = () => {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.6}
+        size={0.8}
         color="#66FCF1"
         transparent
-        opacity={0.6}
+        opacity={0.4}
         sizeAttenuation={true}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
@@ -50,8 +46,16 @@ const Particles = () => {
 const ParticleGrid = () => {
   return (
     <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -1 }}>
-      <Canvas camera={{ position: [0, 0, 50], fov: 60 }}>
-        <Particles />
+      <Canvas 
+        camera={{ position: [0, 0, 50], fov: 60 }}
+        dpr={1} // CRITICAL: Force 1x resolution to save GPU
+        gl={{ 
+          antialias: false, 
+          alpha: true,
+          powerPreference: "high-performance"
+        }}
+      >
+        <Particles count={800} />
       </Canvas>
     </div>
   );
