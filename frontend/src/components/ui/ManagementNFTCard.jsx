@@ -24,13 +24,9 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
     if (!address || !walletClient) return toast.error("Wallet not connected");
 
     setLoading(true);
-    const loadingToast = toast.loading("Checking wallet synchronization...");
+    const loadingToast = toast.loading("Preparing delisting...");
     
     try {
-      console.log("🚀 INITIATING DELISTING FOR ID:", item.tokenId);
-      console.log("👤 SIGNER ADDRESS:", address);
-
-      // Force direct write without any pre-checks that might trigger RPC errors
       const hash = await walletClient.writeContract({
         address: MARKETPLACE_ADDRESS,
         abi: NFTMarketplaceABI,
@@ -38,36 +34,24 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         args: [BigInt(item.tokenId)],
         chainId: 34,
         type: 'legacy',
-        gas: 800000n, 
-        gasPrice: parseGwei('4.0'), // Ultra priority
+        // Normal fee estimation: removed hardcoded gasPrice and limit
         account: address,
       });
       
-      console.log("✅ METAMASK POPUP CONFIRMED. HASH:", hash);
-      toast.loading("Transaction sent! confirming on-chain...", { id: loadingToast });
-      
+      toast.loading("Transaction sent! confirming...", { id: loadingToast });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      console.log("📄 TRANSACTION RECEIPT:", receipt);
-      
       toast.dismiss(loadingToast);
 
       if (receipt.status === 'reverted') {
-        throw new Error("The blockchain reverted this transaction. This usually means the contract mapping is out of sync with your wallet.");
+        throw new Error("The blockchain reverted this transaction.");
       }
 
-      toast.success("Listing removed successfully!");
+      toast.success("Listing removed!");
       if (onRefresh) onRefresh();
     } catch (err) {
       toast.dismiss(loadingToast);
-      console.error("❌ DELISTING FAILED:", err);
-      
-      const errorMessage = err.shortMessage || err.message || "Cancellation failed";
-      
-      if (errorMessage.includes("User rejected")) {
-        toast.error("Transaction cancelled by user");
-      } else {
-        toast.error(errorMessage);
-      }
+      console.error("Delisting error:", err);
+      toast.error(err.shortMessage || err.message || "Cancellation failed");
     } finally {
       setLoading(false);
     }
@@ -98,8 +82,7 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         value: listingPrice,
         chainId: 34,
         type: 'legacy',
-        gas: 800000n,
-        gasPrice: parseGwei('4.0'),
+        // Normal fee estimation
         account: address,
       });
       
