@@ -150,16 +150,24 @@ const Mint = () => {
         throw writeError;
       }
 
-      const explorerUrl = `https://explorer.securechain.ai/tx/${txHash}`;
+      const explorerUrl = `https://explorer.securechain.ai/tx/${hash}`;
       setStatus(
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Success! Inscribing on SecureChain...</span>
+        <div className="w-full space-y-3">
+          <div className="flex items-center gap-3 text-[#66FCF1]">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span className="font-bold tracking-tight">INSCRIBING ON BLOCKCHAIN...</span>
           </div>
-          <a href={explorerUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[#66FCF1] underline text-xs">
-            Monitor Transaction <ExternalLink className="w-3 h-3" />
-          </a>
+          <div className="flex items-center justify-between bg-black/40 p-3 rounded-xl border border-[#66FCF1]/10">
+            <span className="text-gray-400 text-xs">Transaction Pulse Detected</span>
+            <a 
+              href={explorerUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center gap-1.5 text-[#66FCF1] hover:text-[#45A29E] transition-colors text-xs font-black uppercase tracking-tighter"
+            >
+              Live Monitor <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
         </div>
       );
 
@@ -285,10 +293,13 @@ const Mint = () => {
           )}
 
           {status && (
-            <div className="p-4 bg-[#66FCF1]/10 border border-[#66FCF1]/30 rounded-lg text-[#66FCF1] text-sm flex items-center gap-3">
-              {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-5 bg-[#66FCF1]/5 border border-[#66FCF1]/20 rounded-2xl shadow-[0_0_30px_rgba(102,252,241,0.05)]"
+            >
               {status}
-            </div>
+            </motion.div>
           )}
 
           <motion.button 
