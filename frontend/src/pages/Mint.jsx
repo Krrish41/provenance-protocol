@@ -175,7 +175,7 @@ const Mint = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Link 
-                to="/dashboard" 
+                to="/my-provenance" 
                 className="flex-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-500/30 transition-all"
               >
                 <LayoutDashboard size={18} /> View in Dashboard
