@@ -8,6 +8,7 @@ import ProtocolDocs from './pages/ProtocolDocs';
 import Contact from './pages/Contact';
 import TermsOfService from './pages/legal/TermsOfService';
 import PrivacyPolicy from './pages/legal/PrivacyPolicy';
+import ManageAssets from './pages/ManageAssets';
 
 import ScrollToTop from './components/ui/ScrollToTop';
 
@@ -21,6 +22,7 @@ function App() {
           <Route path="/explore" element={<Explore />} />
           <Route path="/mint" element={<Mint />} />
           <Route path="/my-provenance" element={<Dashboard />} />
+          <Route path="/manage-assets" element={<ManageAssets />} />
           <Route path="/protocol-docs" element={<ProtocolDocs />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/terms" element={<TermsOfService />} />
