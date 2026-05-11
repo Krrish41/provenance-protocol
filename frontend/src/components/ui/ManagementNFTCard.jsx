@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
-import { parseEther, parseGwei, formatEther } from 'viem';
+import { parseEther, formatEther } from 'viem';
 import { usePublicClient, useWalletClient, useChainId, useAccount } from 'wagmi';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../../utils/contract';
 import toast from 'react-hot-toast';
@@ -50,7 +50,6 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
       if (onRefresh) onRefresh();
     } catch (err) {
       toast.dismiss(loadingToast);
-      console.error("Delisting error:", err);
       toast.error(err.shortMessage || err.message || "Cancellation failed");
     } finally {
       setLoading(false);

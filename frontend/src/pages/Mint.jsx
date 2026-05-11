@@ -21,7 +21,7 @@ const Mint = () => {
   const [isIpfsUploading, setIsIpfsUploading] = useState(false);
   const [txHash, setTxHash] = useState(null);
 
-  const { writeContractAsync, isPending: isWritePending, isError: isWriteError, error: writeError } = useWriteContract();
+  const { writeContractAsync, isPending: isWritePending } = useWriteContract();
 
   const { 
     isLoading: isConfirming,
@@ -100,7 +100,6 @@ const Mint = () => {
       }
 
     } catch (error) {
-      console.error("Minting lifecycle error:", error);
       setIsIpfsUploading(false);
       
       // Cleanup IPFS if wallet phase fails

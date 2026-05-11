@@ -1,16 +1,16 @@
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { BrowserProvider, JsonRpcProvider, Contract } from 'ethers';
+import { JsonRpcProvider, Contract } from 'ethers';
 import axios from 'axios';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import NFTCard from '../components/ui/NFTCard';
 import NFTModal from '../components/ui/NFTModal';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
 import toast from 'react-hot-toast';
-import { resolveIPFS, getAllIPFSGateways } from '../utils/ipfs';
+import { resolveIPFS } from '../utils/ipfs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAccount, useWriteContract, usePublicClient, useChainId, useSwitchChain } from 'wagmi';
-import { parseGwei, parseEther, formatEther } from 'viem';
+import { parseEther, formatEther } from 'viem';
 
 // Instantiate provider and contract outside the component lifecycle for immediate readiness
 const rpcUrl = import.meta.env.VITE_SCAI_RPC_URL || "https://34.rpc.thirdweb.com";
@@ -53,8 +53,6 @@ const Explore = () => {
         try {
           const tokenUri = await marketplaceContract.tokenURI(i.tokenId);
           if (!tokenUri) return null;
-
-          const gateways = getAllIPFSGateways(tokenUri);
           
           let meta = null;
           try {
@@ -63,9 +61,7 @@ const Explore = () => {
             if (res.data && (res.data.image || res.data.name)) {
               meta = res.data;
             }
-          } catch (e) {
-            console.warn("Metadata sync failed for", tokenId);
-          }
+          } catch (e) {}
 
           if (!meta) {
             return {
