@@ -31,7 +31,7 @@ const Particles = () => {
   }, [count]);
 
   useFrame((state) => {
-    const time = state.clock.getElapsedTime() * 0.5;
+    const time = state.clock.getElapsedTime() * 0.8;
     const { positions } = mesh.current.geometry.attributes;
     
     for (let i = 0; i < count; i++) {
@@ -39,8 +39,8 @@ const Particles = () => {
       const s = step[i];
       
       // Efficient sine-based movement
-      positions.array[i3] = initialPositions[i3] + Math.sin(time + s) * 2;
-      positions.array[i3 + 1] = initialPositions[i3 + 1] + Math.cos(time + s) * 2;
+      positions.array[i3] = initialPositions[i3] + Math.sin(time + s) * 3;
+      positions.array[i3 + 1] = initialPositions[i3 + 1] + Math.cos(time + s) * 3;
       positions.array[i3 + 2] = initialPositions[i3 + 2] + Math.sin(time * 0.5 + s) * 2;
     }
     
@@ -58,12 +58,13 @@ const Particles = () => {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.15}
+        size={0.4}
         color="#66FCF1"
         transparent
-        opacity={0.4}
+        opacity={0.7}
         sizeAttenuation
         blending={THREE.AdditiveBlending}
+        depthWrite={false}
       />
     </points>
   );
@@ -71,10 +72,10 @@ const Particles = () => {
 
 const ParticleGrid = () => {
   return (
-    <div className="absolute inset-0 pointer-events-none opacity-50">
+    <div className="absolute inset-0 pointer-events-none">
       <Canvas 
         camera={{ fov: 75, position: [0, 0, 30] }}
-        dpr={1} // Force 1x resolution for background points (massive GPU saving)
+        dpr={[1, 2]} 
         gl={{ 
           antialias: false, 
           powerPreference: "high-performance",
