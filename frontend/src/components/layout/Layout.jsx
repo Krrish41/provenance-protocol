@@ -1,9 +1,7 @@
-import { lazy, Suspense } from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
-
-const ParticleGrid = lazy(() => import('../3d/ParticleGrid'));
-const CursorTrail = lazy(() => import('../3d/CursorTrail'));
+import ParticleGrid from '../3d/ParticleGrid';
+import CursorTrail from '../3d/CursorTrail';
 import { Toaster } from 'react-hot-toast';
 
 const Layout = ({ children }) => {
@@ -39,13 +37,9 @@ const Layout = ({ children }) => {
         }}
       />
       <div className="fixed inset-0 z-0">
-        <Suspense fallback={null}>
-          <ParticleGrid />
-        </Suspense>
+        <ParticleGrid />
       </div>
-      <Suspense fallback={null}>
-        <CursorTrail />
-      </Suspense>
+      <CursorTrail />
       
       <div className="relative z-10 flex flex-col min-h-screen">
         <Navbar />

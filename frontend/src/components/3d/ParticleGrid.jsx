@@ -3,66 +3,43 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 const Particles = () => {
-  const count = 1500;
-  const mesh = useRef();
-  
-  // Create a BufferGeometry for maximum performance
-  const [positions, initialPositions, step] = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    const initialPos = new Float32Array(count * 3);
-    const stepArr = new Float32Array(count);
-    
+  const count = 2000;
+  const points = useRef();
+
+  // Create positions once
+  const particles = useMemo(() => {
+    const temp = [];
     for (let i = 0; i < count; i++) {
-      const x = -50 + Math.random() * 100;
-      const y = -50 + Math.random() * 100;
-      const z = -50 + Math.random() * 100;
-      
-      pos[i * 3] = x;
-      pos[i * 3 + 1] = y;
-      pos[i * 3 + 2] = z;
-      
-      initialPos[i * 3] = x;
-      initialPos[i * 3 + 1] = y;
-      initialPos[i * 3 + 2] = z;
-      
-      stepArr[i] = Math.random() * 100;
+      const x = (Math.random() - 0.5) * 100;
+      const y = (Math.random() - 0.5) * 100;
+      const z = (Math.random() - 0.5) * 100;
+      temp.push(x, y, z);
     }
-    return [pos, initialPos, stepArr];
+    return new Float32Array(temp);
   }, [count]);
 
   useFrame((state) => {
-    const time = state.clock.getElapsedTime() * 0.8;
-    const { positions } = mesh.current.geometry.attributes;
-    
-    for (let i = 0; i < count; i++) {
-      const i3 = i * 3;
-      const s = step[i];
-      
-      // Efficient sine-based movement
-      positions.array[i3] = initialPositions[i3] + Math.sin(time + s) * 3;
-      positions.array[i3 + 1] = initialPositions[i3 + 1] + Math.cos(time + s) * 3;
-      positions.array[i3 + 2] = initialPositions[i3 + 2] + Math.sin(time * 0.5 + s) * 2;
-    }
-    
-    positions.needsUpdate = true;
+    const time = state.clock.getElapsedTime();
+    points.current.rotation.x = time * 0.05;
+    points.current.rotation.y = time * 0.075;
   });
 
   return (
-    <points ref={mesh}>
+    <points ref={points}>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={positions.length / 3}
-          array={positions}
+          count={particles.length / 3}
+          array={particles}
           itemSize={3}
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.4}
+        size={0.6}
         color="#66FCF1"
         transparent
-        opacity={0.7}
-        sizeAttenuation
+        opacity={0.6}
+        sizeAttenuation={true}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
@@ -72,17 +49,8 @@ const Particles = () => {
 
 const ParticleGrid = () => {
   return (
-    <div className="absolute inset-0 pointer-events-none">
-      <Canvas 
-        camera={{ fov: 75, position: [0, 0, 30] }}
-        dpr={[1, 2]} 
-        gl={{ 
-          antialias: false, 
-          powerPreference: "high-performance",
-          alpha: true 
-        }}
-        frameloop="always"
-      >
+    <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -1 }}>
+      <Canvas camera={{ position: [0, 0, 50], fov: 60 }}>
         <Particles />
       </Canvas>
     </div>
