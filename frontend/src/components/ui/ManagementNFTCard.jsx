@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { parseEther, parseGwei, formatEther } from 'viem';
-import { usePublicClient, useWalletClient, useChainId } from 'wagmi';
+import { usePublicClient, useWalletClient, useChainId, useAccount } from 'wagmi';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../../utils/contract';
 import toast from 'react-hot-toast';
 import { Tag, XCircle, RefreshCw, ChevronUp, DollarSign } from 'lucide-react';
@@ -13,9 +13,22 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
   const [loading, setLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   
+  const { address } = useAccount();
   const chainId = useChainId();
   const publicClient = usePublicClient({ chainId: 34 });
   const { data: walletClient } = useWalletClient();
+
+  // Debug: Monitor address state
+  useEffect(() => {
+    if (isHovered && item && address) {
+      console.log("Card Debug:", {
+        tokenId: item.tokenId,
+        itemSeller: item.seller?.toLowerCase(),
+        connectedAddress: address?.toLowerCase(),
+        isMatch: item.seller?.toLowerCase() === address?.toLowerCase()
+      });
+    }
+  }, [isHovered, item, address]);
 
   const handleResell = async (e) => {
     e.stopPropagation();
@@ -24,6 +37,7 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
     }
 
     if (chainId !== 34) return toast.error("Switch to SecureChain AI Mainnet");
+    if (!address) return toast.error("Wallet not connected");
 
     setLoading(true);
     try {
@@ -43,6 +57,7 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         type: 'legacy',
         gas: 500000n,
         gasPrice: parseGwei('3.5'),
+        account: address,
       });
       
       const loadingToast = toast.loading("Relisting asset on-chain...");
@@ -50,7 +65,7 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
       toast.dismiss(loadingToast);
 
       if (receipt.status === 'reverted') {
-        throw new Error("Transaction reverted on-chain. Please check if you are the owner and have enough SCAI.");
+        throw new Error("Transaction reverted on-chain. Please check if you are the owner.");
       }
 
       toast.success("Asset listed on market!");
@@ -67,6 +82,13 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
   const handleCancel = async (e) => {
     e.stopPropagation();
     if (chainId !== 34) return toast.error("Switch to SecureChain AI Mainnet");
+    if (!address) return toast.error("Wallet not connected");
+
+    // Pre-flight check
+    if (item.seller.toLowerCase() !== address.toLowerCase()) {
+      console.error("Owner Mismatch!", { seller: item.seller, connected: address });
+      return toast.error("Owner mismatch! This wallet did not list this NFT.");
+    }
 
     setLoading(true);
     try {
@@ -79,6 +101,7 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         type: 'legacy',
         gas: 500000n,
         gasPrice: parseGwei('3.5'),
+        account: address,
       });
       
       const loadingToast = toast.loading("Cancelling listing on-chain...");
