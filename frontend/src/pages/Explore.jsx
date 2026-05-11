@@ -9,7 +9,7 @@ import SkeletonLoader from '../components/ui/SkeletonLoader';
 import toast from 'react-hot-toast';
 import { resolveIPFS, getAllIPFSGateways } from '../utils/ipfs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAccount, useWriteContract, usePublicClient } from 'wagmi';
+import { useAccount, useWriteContract, usePublicClient, useChainId, useSwitchChain } from 'wagmi';
 import { parseGwei, parseEther, formatEther } from 'viem';
 
 // Instantiate provider and contract outside the component lifecycle for immediate readiness
@@ -17,12 +17,14 @@ const rpcUrl = import.meta.env.VITE_SCAI_RPC_URL || "https://34.rpc.thirdweb.com
 const rpcProvider = new JsonRpcProvider(rpcUrl);
 const marketplaceContract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, rpcProvider);
 
-const Explore = () => {
+  const Explore = () => {
   const [selectedNft, setSelectedNft] = useState(null);
   const queryClient = useQueryClient();
   const { address: userAddress, isConnected } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient({ chainId: 34 });
+  const currentChainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
 
   const { data: nfts = [], isLoading: loading } = useQuery({
     queryKey: ['marketItems'],
@@ -113,6 +115,20 @@ const Explore = () => {
         toast.dismiss(loadingToast);
         return toast.error("Please connect your wallet!");
       }
+
+      // Network Guard: Ensure user is on SCAI Mainnet (34)
+      if (currentChainId !== 34) {
+        toast.loading("Switching to SecureChain Mainnet...", { id: loadingToast });
+        try {
+          await switchChainAsync({ chainId: 34 });
+          toast.dismiss(loadingToast);
+          toast.success("Switched to SecureChain. Please click Buy again.");
+          return;
+        } catch (e) {
+          toast.dismiss(loadingToast);
+          return toast.error("Please switch your wallet to SecureChain Mainnet manually.");
+        }
+      }
       
       const sellerAddr = nft.seller.toLowerCase();
       const currentAddr = userAddress.toLowerCase();
@@ -153,6 +169,7 @@ const Explore = () => {
         functionName: 'createMarketSale',
         args: [nft.tokenId],
         value: price,
+        chainId: 34, // Explicitly target SCAI
         type: 'legacy',
         gas: gasLimit,
         gasPrice: gasPrice,

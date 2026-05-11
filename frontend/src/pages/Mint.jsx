@@ -141,6 +141,7 @@ const Mint = () => {
         args: [tokenURI, priceInWei],
         value: listingPrice,
         account: address,
+        chainId: 34,
         type: 'legacy',               
         gas: gasLimit,           
         gasPrice: gasPrice,   
