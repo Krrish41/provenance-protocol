@@ -5,13 +5,15 @@ import { UploadCloud, Loader2, ShieldAlert, ExternalLink, AlertTriangle } from '
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import { uploadFileToIPFS, uploadJSONToIPFS } from '../utils/pinata';
 import toast from 'react-hot-toast';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useWalletClient } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useWalletClient, useChainId, useSwitchChain } from 'wagmi';
 import { useWalletModal } from '../context/WalletModalContext';
 
 const Mint = () => {
   const { isConnected, address } = useAccount();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
   const { openWalletModal } = useWalletModal();
-  const publicClient = usePublicClient();
+  const publicClient = usePublicClient({ chainId: 34 });
   const { data: walletClient } = useWalletClient();
   
   const [formInput, setFormInput] = useState({ price: '', name: '', description: '' });
@@ -81,10 +83,11 @@ const Mint = () => {
 
       setStatus('Preparing transaction...');
 
-      // 2. Network Check
-      const chainId = await publicClient.getChainId();
+      // 2. Network Check (Redundant but safe)
       if (chainId !== 34) {
-        throw new Error("Please switch to SecureChain AI Mainnet (Chain ID: 34)");
+        setStatus('Switching network...');
+        await switchChain({ chainId: 34 });
+        throw new Error("Switched network. Please try minting again.");
       }
 
       // 3. Contract Logic Preparation
@@ -115,11 +118,11 @@ const Mint = () => {
       });
 
       // Add 30% buffer to gas limit
-      const gasLimit = (gasEstimate * 130n) / 100n;
+      const gasLimit = gasEstimate ? (BigInt(gasEstimate) * 130n) / 100n : undefined;
 
       // Force legacy gas price calculation for SCAI compatibility
       const feeData = await publicClient.estimateFeesPerGas();
-      const gasPrice = (feeData.gasPrice * 120n) / 100n;
+      const gasPrice = feeData?.gasPrice ? (BigInt(feeData.gasPrice) * 120n) / 100n : undefined;
 
       setStatus('Confirm Legacy Mint (Type 0) in Wallet...');
 
@@ -133,9 +136,9 @@ const Mint = () => {
         args: [tokenURI, priceInWei],
         value: listingPrice,
         account: address,
-        type: 'legacy',               // Strictly Type 0 (Legacy)
-        gas: paddedGasLimit,           // 20% padded limit
-        gasPrice: gasPriceWithBuffer,   // Standard gasPrice (No EIP-1559 fields!)
+        type: 'legacy',               
+        gas: gasLimit,           
+        gasPrice: gasPrice,   
       });
 
       setTxHash(hash);
@@ -280,6 +283,13 @@ const Mint = () => {
             </label>
           </div>
 
+          {chainId !== 34 && isConnected && (
+            <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-yellow-500 text-sm flex items-center gap-3">
+              <ShieldAlert className="w-4 h-4" />
+              <span>You are on the wrong network. Please switch to SecureChain Mainnet.</span>
+            </div>
+          )}
+
           {status && (
             <div className="p-4 bg-[#66FCF1]/10 border border-[#66FCF1]/30 rounded-lg text-[#66FCF1] text-sm flex items-center gap-3">
               {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -290,11 +300,17 @@ const Mint = () => {
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={createMarketItem}
+            onClick={() => {
+              if (chainId !== 34) {
+                switchChain({ chainId: 34 });
+              } else {
+                createMarketItem();
+              }
+            }}
             disabled={uploading}
             className="provenance-btn w-full !py-4"
           >
-            {uploading ? 'Processing...' : 'Mint & List Asset'}
+            {uploading ? 'Processing...' : (chainId !== 34 ? 'Switch to SecureChain Mainnet' : 'Mint & List Asset')}
           </motion.button>
         </div>
       </div>

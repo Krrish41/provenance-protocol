@@ -39,6 +39,7 @@ export const scaiMainnet = defineChain({
   },
   fees: {
     async estimateFeesPerGas({ publicClient }) {
+      if (!publicClient) return { gasPrice: undefined };
       const gasPrice = await publicClient.getGasPrice();
       return { gasPrice };
     },
