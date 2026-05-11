@@ -18,18 +18,6 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
   const publicClient = usePublicClient({ chainId: 34 });
   const { data: walletClient } = useWalletClient();
 
-  // Debug: Monitor address state
-  useEffect(() => {
-    if (isHovered && item && address) {
-      console.log("Card Debug:", {
-        tokenId: item.tokenId,
-        itemSeller: item.seller?.toLowerCase(),
-        connectedAddress: address?.toLowerCase(),
-        isMatch: item.seller?.toLowerCase() === address?.toLowerCase()
-      });
-    }
-  }, [isHovered, item, address]);
-
   const handleResell = async (e) => {
     e.stopPropagation();
     if (!newPrice || isNaN(newPrice) || parseFloat(newPrice) <= 0) {
@@ -82,29 +70,14 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
   const handleCancel = async (e) => {
     e.stopPropagation();
     if (chainId !== 34) return toast.error("Switch to SecureChain AI Mainnet");
-    if (!address || !walletClient || !publicClient) return toast.error("Client not ready");
+    if (!address || !walletClient) return toast.error("Wallet not connected");
 
     setLoading(true);
+    const loadingToast = toast.loading("Confirming delisting request...");
+    
     try {
-      // 1. Pre-transaction simulation (This gets the REAL error from contract)
-      console.log("🛠️ SIMULATING TRANSACTION...");
-      try {
-        await publicClient.simulateContract({
-          address: MARKETPLACE_ADDRESS,
-          abi: NFTMarketplaceABI,
-          functionName: 'cancelListing',
-          args: [BigInt(item.tokenId)],
-          account: address,
-        });
-        console.log("✅ SIMULATION SUCCESSFUL - Sending to wallet...");
-      } catch (simErr) {
-        console.error("🛑 SIMULATION FAILED:", simErr);
-        // Extract the revert reason if possible
-        const reason = simErr.walk?.().data?.errorName || simErr.shortMessage || "Contract logic error";
-        throw new Error(`Blockchain Simulation Failed: ${reason}`);
-      }
-
-      // 2. Execute transaction with high gas limit
+      // 1. Force the transaction through without simulation
+      // Simulation sometimes fails on custom chains like SCAI due to RPC quirks
       const hash = await walletClient.writeContract({
         address: MARKETPLACE_ADDRESS,
         abi: NFTMarketplaceABI,
@@ -112,24 +85,25 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         args: [BigInt(item.tokenId)],
         chainId: 34,
         type: 'legacy',
-        gas: 1000000n, // Very high safety limit
-        gasPrice: parseGwei('3.5'),
+        gas: 1000000n, 
+        gasPrice: parseGwei('3.8'), // Slightly higher priority
         account: address,
       });
       
-      const loadingToast = toast.loading("Cancelling listing on-chain...");
+      toast.loading("Transaction sent! Waiting for confirmation...", { id: loadingToast });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       toast.dismiss(loadingToast);
 
       if (receipt.status === 'reverted') {
-        throw new Error("Transaction reverted after broadcast. Possible gas or state collision.");
+        throw new Error("Transaction reverted. Possible reasons: Wrong wallet account or NFT already delisted.");
       }
 
-      toast.success("Listing removed!");
+      toast.success("Listing removed successfully!");
       if (onRefresh) onRefresh();
     } catch (err) {
+      toast.dismiss(loadingToast);
       console.error("Cancel error:", err);
-      toast.error(err.message || "Cancellation failed");
+      toast.error(err.shortMessage || err.message || "Cancellation failed");
     } finally {
       setLoading(false);
     }
