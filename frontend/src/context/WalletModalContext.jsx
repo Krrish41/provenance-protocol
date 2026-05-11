@@ -1,15 +1,21 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useMemo, useCallback } from 'react';
 
 const WalletModalContext = createContext();
 
 export const WalletModalProvider = ({ children }) => {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
-  const openWalletModal = () => setIsWalletModalOpen(true);
-  const closeWalletModal = () => setIsWalletModalOpen(false);
+  const openWalletModal = useCallback(() => setIsWalletModalOpen(true), []);
+  const closeWalletModal = useCallback(() => setIsWalletModalOpen(false), []);
+
+  const value = useMemo(() => ({ 
+    isWalletModalOpen, 
+    openWalletModal, 
+    closeWalletModal 
+  }), [isWalletModalOpen, openWalletModal, closeWalletModal]);
 
   return (
-    <WalletModalContext.Provider value={{ isWalletModalOpen, openWalletModal, closeWalletModal }}>
+    <WalletModalContext.Provider value={value}>
       {children}
     </WalletModalContext.Provider>
   );

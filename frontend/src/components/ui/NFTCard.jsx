@@ -1,9 +1,12 @@
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
+import { useRef } from 'react';
 import { useAccount } from 'wagmi';
 import { Boxes } from 'lucide-react';
 import { useWalletModal } from '../../context/WalletModalContext';
 
 const NFTCard = ({ item, onAction, onClick }) => {
+  const cardRef = useRef(null);
+  const isInView = useInView(cardRef, { once: true, margin: "-50px" });
   const { address, isConnected } = useAccount();
   const { openWalletModal } = useWalletModal();
 
@@ -31,10 +34,16 @@ const NFTCard = ({ item, onAction, onClick }) => {
 
   return (
     <motion.div 
-      whileHover={{ y: -10, boxShadow: '0 10px 30px -10px rgba(102,252,241,0.3)' }}
+      ref={cardRef}
+      initial={{ opacity: 0, y: 20 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      whileHover={{ y: -5 }}
       onClick={() => onClick && onClick(item)}
-      className="bg-[#1e2024]/80 border border-[#45A29E]/30 rounded-xl overflow-hidden backdrop-blur-sm flex flex-col interactive cursor-pointer group"
+      className="bg-[#1e2024]/80 border border-[#45A29E]/30 rounded-xl overflow-hidden backdrop-blur-sm flex flex-col interactive cursor-pointer group relative transition-all duration-300"
     >
+      {/* Optimized Shadow using Pseudo-element */}
+      <div className="absolute inset-0 rounded-xl shadow-[0_10px_30px_-10px_rgba(102,252,241,0.4)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-0" />
+      
       <div className="relative aspect-square overflow-hidden bg-[#0B0C10]">
         {item.isPending ? (
           <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-[#1e2024]">

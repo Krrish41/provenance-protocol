@@ -23,37 +23,41 @@ const Particles = () => {
   }, [count]);
 
   useFrame((state) => {
+    const time = state.clock.getElapsedTime();
+    
+    // Only update every other frame or based on time to reduce CPU load
+    // But since it's instancedMesh, we can also just simplify the math
     particles.forEach((particle, i) => {
       let { t, factor, speed, xFactor, yFactor, zFactor } = particle;
       
-      // Update time
-      t = particle.t += speed / 2;
+      const currentTime = t + time * speed;
       
-      // Get mouse position mapped to 3D space
+      // Calculate base position with simplified math
+      let x = xFactor + Math.cos(currentTime) * factor * 0.1;
+      let y = yFactor + Math.sin(currentTime) * factor * 0.1;
+      let z = zFactor + Math.cos(currentTime) * factor * 0.1;
+
+      // Only check mouse if it's actually moving (optional performance gain)
       const mouseX = (state.pointer.x * state.viewport.width) / 2;
       const mouseY = (state.pointer.y * state.viewport.height) / 2;
-      
-      // Calculate base position
-      let x = xFactor + Math.cos((t / 10) * factor) + (Math.sin(t * 1) * factor) / 10;
-      let y = yFactor + Math.sin((t / 10) * factor) + (Math.cos(t * 2) * factor) / 10;
-      let z = zFactor + Math.cos((t / 10) * factor) + (Math.sin(t * 3) * factor) / 10;
-
-      // Mouse attraction/repulsion
       const dx = mouseX - x;
       const dy = mouseY - y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+      const distanceSq = dx * dx + dy * dy; // Use distance squared to avoid sqrt
       
-      if (distance < 10) {
-        x -= dx * 0.05;
-        y -= dy * 0.05;
+      if (distanceSq < 100) { // 10^2
+        x -= dx * 0.02;
+        y -= dy * 0.02;
       }
 
       dummy.position.set(x, y, z);
       dummy.updateMatrix();
-      
       mesh.current.setMatrixAt(i, dummy.matrix);
     });
+    
     mesh.current.instanceMatrix.needsUpdate = true;
+    
+    // Request next frame only if needed - but here we want smooth particles
+    // so we just keep it but optimized.
   });
 
   return (
@@ -65,9 +69,16 @@ const Particles = () => {
 };
 
 const ParticleGrid = () => {
+  const containerRef = useRef();
+  
   return (
-    <div className="absolute inset-0 pointer-events-none">
-      <Canvas camera={{ fov: 75, position: [0, 0, 30] }}>
+    <div ref={containerRef} className="absolute inset-0 pointer-events-none">
+      <Canvas 
+        camera={{ fov: 75, position: [0, 0, 30] }}
+        dpr={[1, 2]} // Optimize for high-DPI screens
+        gl={{ antialias: false, powerPreference: "high-performance" }} // Reduce load
+        frameloop="demand" // Only render on change (or use clock)
+      >
         <Particles />
       </Canvas>
     </div>

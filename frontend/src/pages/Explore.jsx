@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { BrowserProvider, JsonRpcProvider, Contract } from 'ethers';
 import axios from 'axios';
@@ -17,7 +17,7 @@ const rpcUrl = import.meta.env.VITE_SCAI_RPC_URL || "https://34.rpc.thirdweb.com
 const rpcProvider = new JsonRpcProvider(rpcUrl);
 const marketplaceContract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI, rpcProvider);
 
-  const Explore = () => {
+const Explore = () => {
   const [selectedNft, setSelectedNft] = useState(null);
   const queryClient = useQueryClient();
   const { address: userAddress, isConnected } = useAccount();
@@ -108,7 +108,7 @@ const marketplaceContract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  async function buyNft(nft) {
+  const buyNft = useCallback(async (nft) => {
     const loadingToast = toast.loading("Preparing transaction...");
     try {
       if (!isConnected) {
@@ -196,7 +196,7 @@ const marketplaceContract = new Contract(MARKETPLACE_ADDRESS, NFTMarketplaceABI,
       
       toast.error(error.shortMessage || errorMessage);
     }
-  }
+  }, [isConnected, currentChainId, userAddress, publicClient, queryClient, selectedNft, switchChainAsync, writeContractAsync]);
 
   return (
     <motion.div 

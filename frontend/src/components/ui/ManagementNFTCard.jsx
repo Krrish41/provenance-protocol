@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useRef } from 'react';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { parseEther, parseGwei, formatEther } from 'viem';
 import { usePublicClient, useWalletClient, useChainId } from 'wagmi';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../../utils/contract';
@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 import { Tag, XCircle, RefreshCw, ChevronUp, DollarSign } from 'lucide-react';
 
 const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
+  const cardRef = useRef(null);
+  const isInView = useInView(cardRef, { once: true, margin: "-50px" });
   const [newPrice, setNewPrice] = useState('');
   const [loading, setLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -85,11 +87,17 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
 
   return (
     <motion.div 
+      ref={cardRef}
       layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative bg-[#1e2024]/80 border border-[#45A29E]/30 rounded-2xl overflow-hidden backdrop-blur-sm flex flex-col group h-full shadow-lg"
+      className="relative bg-[#1e2024]/80 border border-[#45A29E]/30 rounded-2xl overflow-hidden backdrop-blur-sm flex flex-col group h-full transition-all duration-300"
     >
+      {/* Optimized Shadow using Pseudo-element */}
+      <div className="absolute inset-0 rounded-2xl shadow-[0_10px_40px_-10px_rgba(102,252,241,0.4)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-0" />
+      
       {/* Image Section - Clicking here still expands */}
       <div 
         onClick={() => onClick(item)}

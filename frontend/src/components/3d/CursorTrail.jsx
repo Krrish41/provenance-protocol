@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react';
 import { motion, useSpring } from 'framer-motion';
 
 const CursorTrail = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const isTouchDevice = typeof window !== 'undefined' && !window.matchMedia('(pointer: fine)').matches;
 
   // Smooth springs for the cursor
   const springConfig = { damping: 25, stiffness: 300, mass: 0.5 };
@@ -12,34 +11,31 @@ const CursorTrail = () => {
   const cursorY = useSpring(0, springConfig);
 
   useEffect(() => {
-    setIsTouchDevice(!window.matchMedia('(pointer: fine)').matches);
-    
+    if (isTouchDevice) return;
+
     const updateMousePosition = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
       cursorX.set(e.clientX - 16);
       cursorY.set(e.clientY - 16);
     };
 
     const handleMouseOver = (e) => {
-      if (e.target.tagName.toLowerCase() === 'button' || 
-          e.target.tagName.toLowerCase() === 'a' ||
-          e.target.closest('button') || 
-          e.target.closest('a') ||
-          e.target.classList.contains('interactive')) {
-        setIsHovering(true);
-      } else {
-        setIsHovering(false);
-      }
+      const target = e.target;
+      const isInteractive = target.tagName.toLowerCase() === 'button' || 
+                            target.tagName.toLowerCase() === 'a' ||
+                            target.closest('button') || 
+                            target.closest('a') ||
+                            target.classList.contains('interactive');
+      setIsHovering(isInteractive);
     };
 
-    window.addEventListener('mousemove', updateMousePosition);
-    window.addEventListener('mouseover', handleMouseOver);
+    window.addEventListener('mousemove', updateMousePosition, { passive: true });
+    window.addEventListener('mouseover', handleMouseOver, { passive: true });
 
     return () => {
       window.removeEventListener('mousemove', updateMousePosition);
       window.removeEventListener('mouseover', handleMouseOver);
     };
-  }, [cursorX, cursorY]);
+  }, [cursorX, cursorY, isTouchDevice]);
 
   if (isTouchDevice) return null;
 
