@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BrowserProvider, JsonRpcProvider, Contract, formatEther, parseEther } from 'ethers';
+import { BrowserProvider, JsonRpcProvider, Contract } from 'ethers';
 import axios from 'axios';
 import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import NFTCard from '../components/ui/NFTCard';
@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import { resolveIPFS, getAllIPFSGateways } from '../utils/ipfs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAccount, useWriteContract, usePublicClient } from 'wagmi';
-import { parseGwei, parseEther } from 'viem';
+import { parseGwei, parseEther, formatEther } from 'viem';
 
 // Instantiate provider and contract outside the component lifecycle for immediate readiness
 const rpcUrl = import.meta.env.VITE_SCAI_RPC_URL || "https://34.rpc.thirdweb.com";
