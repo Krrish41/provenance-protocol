@@ -23,10 +23,10 @@ const Particles = ({ count = 500 }) => {
     
     particles.forEach((p, i) => {
       const { x, y, z, speed, offset } = p;
-      // Smooth floating movement
-      const xPos = x + Math.sin(time * speed + offset) * 2;
-      const yPos = y + Math.cos(time * speed + offset) * 2;
-      const zPos = z + Math.sin(time * speed * 0.5 + offset) * 2;
+      // Faster smooth floating movement
+      const xPos = x + Math.sin(time * speed * 2 + offset) * 3;
+      const yPos = y + Math.cos(time * speed * 2 + offset) * 3;
+      const zPos = z + Math.sin(time * speed + offset) * 3;
       
       dummy.position.set(xPos, yPos, zPos);
       dummy.updateMatrix();
