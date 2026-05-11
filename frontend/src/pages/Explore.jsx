@@ -175,17 +175,18 @@ const Explore = () => {
         gasPrice: gasPrice,
       });
 
-      toast.loading("Transaction sent! Waiting for block...", { id: loadingToast });
+      toast.loading("Transaction sent! Waiting for confirmation...", { id: loadingToast });
       
-      // Wait for a short duration or use a proper listener
-      // For simplicity in this UI, we'll invalidate after a short delay or just assume success if no error
-      setTimeout(() => {
-        toast.dismiss(loadingToast);
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      toast.dismiss(loadingToast);
+
+      if (receipt.status === 'reverted') {
+        toast.error("Purchase failed on-chain. Please check your balance and network.");
+      } else {
         toast.success("Purchase successful!");
         queryClient.invalidateQueries({ queryKey: ['marketItems'] });
         if (selectedNft) setSelectedNft(null);
-      }, 2000);
-
+      }
     } catch (error) {
       console.error("Error buying NFT:", error);
       toast.dismiss(loadingToast);

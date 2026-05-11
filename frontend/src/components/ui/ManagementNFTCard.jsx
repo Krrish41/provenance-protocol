@@ -45,13 +45,20 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         gasPrice: parseGwei('3.5'),
       });
       
-      toast.success("Listing transaction submitted!");
-      await publicClient.waitForTransactionReceipt({ hash });
+      const loadingToast = toast.loading("Relisting asset on-chain...");
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      toast.dismiss(loadingToast);
+
+      if (receipt.status === 'reverted') {
+        throw new Error("Transaction reverted on-chain. Please check if you are the owner and have enough SCAI.");
+      }
+
       toast.success("Asset listed on market!");
       setNewPrice('');
       if (onRefresh) onRefresh();
     } catch (err) {
-      toast.error(err.shortMessage || "Transaction failed");
+      console.error("Resell error:", err);
+      toast.error(err.shortMessage || err.message || "Transaction failed");
     } finally {
       setLoading(false);
     }
@@ -74,12 +81,19 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         gasPrice: parseGwei('3.5'),
       });
       
-      toast.success("Cancellation submitted!");
-      await publicClient.waitForTransactionReceipt({ hash });
+      const loadingToast = toast.loading("Cancelling listing on-chain...");
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      toast.dismiss(loadingToast);
+
+      if (receipt.status === 'reverted') {
+        throw new Error("Cancellation reverted. Ensure you are the original seller of this NFT.");
+      }
+
       toast.success("Listing removed!");
       if (onRefresh) onRefresh();
     } catch (err) {
-      toast.error(err.shortMessage || "Cancellation failed");
+      console.error("Cancel error:", err);
+      toast.error(err.shortMessage || err.message || "Cancellation failed");
     } finally {
       setLoading(false);
     }
