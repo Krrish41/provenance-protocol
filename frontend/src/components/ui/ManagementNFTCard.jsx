@@ -82,16 +82,34 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
   const handleCancel = async (e) => {
     e.stopPropagation();
     if (chainId !== 34) return toast.error("Switch to SecureChain AI Mainnet");
-    if (!address) return toast.error("Wallet not connected");
-
-    // Pre-flight check
-    if (item.seller.toLowerCase() !== address.toLowerCase()) {
-      console.error("Owner Mismatch!", { seller: item.seller, connected: address });
-      return toast.error("Owner mismatch! This wallet did not list this NFT.");
-    }
+    if (!address || !walletClient) return toast.error("Wallet not connected");
 
     setLoading(true);
     try {
+      // ZERO-TRUST: Fetch the latest contract state directly before transaction
+      // This bypasses any stale state in the Dashboard
+      const marketItems = await publicClient.readContract({
+        address: MARKETPLACE_ADDRESS,
+        abi: NFTMarketplaceABI,
+        functionName: 'fetchMarketItems',
+      });
+
+      const currentItem = marketItems.find(i => Number(i.tokenId) === Number(item.tokenId));
+      
+      console.log("🔍 ON-CHAIN VERIFICATION:", {
+        contractSeller: currentItem?.seller?.toLowerCase(),
+        walletSigner: address.toLowerCase(),
+        isMatch: currentItem?.seller?.toLowerCase() === address.toLowerCase()
+      });
+
+      if (!currentItem) {
+        throw new Error("Listing not found on-chain. It may have been sold or already delisted.");
+      }
+
+      if (currentItem.seller.toLowerCase() !== address.toLowerCase()) {
+        throw new Error(`Owner Mismatch! Contract says seller is ${currentItem.seller.slice(0,6)}... but you are ${address.slice(0,6)}...`);
+      }
+
       const hash = await walletClient.writeContract({
         address: MARKETPLACE_ADDRESS,
         abi: NFTMarketplaceABI,
@@ -99,9 +117,9 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         args: [BigInt(item.tokenId)],
         chainId: 34,
         type: 'legacy',
-        gas: 500000n,
+        gas: 600000n, // Increased gas buffer
         gasPrice: parseGwei('3.5'),
-        account: address,
+        account: address, // Enforce the signer
       });
       
       const loadingToast = toast.loading("Cancelling listing on-chain...");
@@ -109,7 +127,7 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
       toast.dismiss(loadingToast);
 
       if (receipt.status === 'reverted') {
-        throw new Error("Cancellation reverted. Ensure you are the original seller of this NFT.");
+        throw new Error("Cancellation reverted. Ensure you have enough gas and are the original seller.");
       }
 
       toast.success("Listing removed!");
