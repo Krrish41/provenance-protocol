@@ -37,7 +37,6 @@ const Navbar = () => {
     { name: 'Explore', path: '/explore' },
     { name: 'Mint', path: '/mint' },
     { name: 'Dashboard', path: '/my-provenance' },
-    { name: 'Management', path: '/manage-assets' },
     { name: 'Architecture', path: '/protocol-docs' },
   ];
 

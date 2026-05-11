@@ -6,11 +6,12 @@ import { MARKETPLACE_ADDRESS, NFTMarketplaceABI } from '../utils/contract';
 import NFTCard from '../components/ui/NFTCard';
 import NFTModal from '../components/ui/NFTModal';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
+import ManagementNFTCard from '../components/ui/ManagementNFTCard';
 import toast from 'react-hot-toast';
 import { resolveIPFS } from '../utils/ipfs';
 import { useAccount } from 'wagmi';
 import { useWalletModal } from '../context/WalletModalContext';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, LayoutGrid, ListFilter, User } from 'lucide-react';
 
 const Dashboard = () => {
   const { isConnected, address, chain } = useAccount();
@@ -147,10 +148,6 @@ const Dashboard = () => {
     }
   }
 
-  function listNFT(nft) {
-    toast.error("Reselling logic requires a contract update. Coming soon!");
-  }
-
   if (!isConnected) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4 min-h-[60vh]">
@@ -186,64 +183,115 @@ const Dashboard = () => {
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="py-8 space-y-12"
-    >
-      <section>
-        <div className="flex justify-between items-center mb-10 border-b border-[#45A29E]/30 pb-4">
-          <h2 className="text-3xl md:text-5xl font-bold text-white uppercase tracking-wide">Active Listings</h2>
-          <span className="text-[#66FCF1] font-mono text-xs md:text-sm">{listedNfts.length} Assets on Market</span>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Header */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-6"
+      >
+        <div>
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-2 flex items-center gap-4 uppercase tracking-tighter">
+            PROVENANCE <span className="text-[#66FCF1]">DASHBOARD</span>
+          </h1>
+          <p className="text-[#45A29E] font-mono text-sm tracking-widest">
+            CONNECTED AS: {address?.slice(0, 6)}...{address?.slice(-4)}
+          </p>
         </div>
-        
-        {loading ? (
-          <SkeletonLoader />
-        ) : listedNfts.length === 0 ? (
-          <div className="text-center py-10 text-[#C5C6C7]/50 bg-[#1e2024]/10 rounded-xl border border-[#45A29E]/5 dashed">
-            <p className="text-lg">No assets currently listed for sale.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {listedNfts.map((nft, i) => (
-              <NFTCard key={i} item={nft} onAction={listNFT} onClick={(nft) => setSelectedNft(nft)} />
-            ))}
-          </div>
-        )}
-      </section>
 
-      <section>
-        <div className="flex justify-between items-center mb-10 border-b border-[#45A29E]/30 pb-4">
-          <h2 className="text-3xl md:text-5xl font-bold text-white uppercase tracking-wide">Personal Holdings</h2>
-          <span className="text-[#45A29E] font-mono text-xs md:text-sm">{ownedNfts.length} Assets Held</span>
+        <div className="bg-[#1e2024] px-6 py-3 rounded-2xl border border-[#45A29E]/30 backdrop-blur-sm">
+          <p className="text-gray-500 text-[10px] uppercase font-bold tracking-widest mb-1">Total Assets</p>
+          <p className="text-2xl font-bold text-[#66FCF1] font-mono">
+            {ownedNfts.length + listedNfts.length} <span className="text-xs text-[#45A29E]">Items</span>
+          </p>
         </div>
-        
-        {loading ? (
-          <SkeletonLoader />
-        ) : ownedNfts.length === 0 ? (
-          <div className="text-center py-20 text-[#C5C6C7] bg-[#1e2024]/30 rounded-xl border border-[#45A29E]/10">
-            <p className="text-xl">Your collection is empty.</p>
-            <p className="text-sm mt-2">Acquire assets from the Explore page.</p>
+      </motion.div>
+
+      <div className="space-y-24">
+        {/* Active Listings Section */}
+        <section>
+          <div className="flex items-center gap-4 mb-10">
+            <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20">
+              <ListFilter className="text-emerald-400" size={24} />
+            </div>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold text-white uppercase tracking-tight">Active Listings</h2>
+              <p className="text-gray-500 text-sm italic">Items currently available for purchase on the open market.</p>
+            </div>
+            <div className="h-[1px] flex-grow bg-gradient-to-r from-emerald-500/30 to-transparent ml-4 hidden md:block"></div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {ownedNfts.map((nft, i) => (
-              <NFTCard key={i} item={nft} onAction={listNFT} onClick={(nft) => setSelectedNft(nft)} />
-            ))}
+          
+          {loading ? (
+            <SkeletonLoader />
+          ) : listedNfts.length === 0 ? (
+            <div className="py-20 border-2 border-dashed border-[#45A29E]/10 rounded-3xl text-center bg-black/20">
+              <p className="text-gray-500 font-medium">You don't have any items listed for sale.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
+              {listedNfts.map((nft) => (
+                <ManagementNFTCard 
+                  key={nft.tokenId} 
+                  item={nft} 
+                  isListed={true} 
+                  onRefresh={loadNFTs} 
+                  onClick={(nft) => setSelectedNft(nft)} 
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Personal Holdings Section */}
+        <section>
+          <div className="flex items-center gap-4 mb-10">
+            <div className="w-12 h-12 bg-[#66FCF1]/10 rounded-xl flex items-center justify-center border border-[#66FCF1]/20">
+              <LayoutGrid className="text-[#66FCF1]" size={24} />
+            </div>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold text-white uppercase tracking-tight">Personal Holdings</h2>
+              <p className="text-gray-500 text-sm italic">Assets safely secured in your protocol wallet.</p>
+            </div>
+            <div className="h-[1px] flex-grow bg-gradient-to-r from-[#45A29E]/30 to-transparent ml-4 hidden md:block"></div>
           </div>
-        )}
-      </section>
+          
+          {loading ? (
+            <SkeletonLoader />
+          ) : ownedNfts.length === 0 ? (
+            <div className="py-20 border-2 border-dashed border-[#45A29E]/10 rounded-3xl text-center bg-black/20">
+              <p className="text-[#45A29E] font-medium mb-4">Your collection is currently empty.</p>
+              <button 
+                onClick={() => window.location.href = '/explore'}
+                className="text-[#66FCF1] border border-[#66FCF1]/30 px-6 py-2 rounded-lg hover:bg-[#66FCF1]/10 transition-all text-sm uppercase font-bold tracking-widest"
+              >
+                Explore Marketplace
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
+              {ownedNfts.map((nft) => (
+                <ManagementNFTCard 
+                  key={nft.tokenId} 
+                  item={nft} 
+                  isListed={false} 
+                  onRefresh={loadNFTs} 
+                  onClick={(nft) => setSelectedNft(nft)} 
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
 
       {selectedNft && (
         <NFTModal 
           nft={selectedNft} 
           isOpen={!!selectedNft} 
           onClose={() => setSelectedNft(null)} 
-          onAction={listNFT}
+          onAction={() => {}} // Actions handled by hover overlay in dashboard
         />
       )}
-    </motion.div>
+    </div>
   );
 };
 
