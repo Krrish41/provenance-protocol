@@ -170,4 +170,36 @@ contract NFTMarketplace is ERC721URIStorage, ReentrancyGuard {
         }
         return items;
     }
+
+    /* Allows users to resell a token they have purchased */
+    function resellToken(uint256 tokenId, uint256 price) public payable nonReentrant {
+        if (idToMarketItem[tokenId].owner != msg.sender) {
+            revert NotItemOwner();
+        }
+        if (msg.value != listingPrice) {
+            revert PriceMustBeEqualToListingPrice();
+        }
+        
+        idToMarketItem[tokenId].sold = false;
+        idToMarketItem[tokenId].price = price;
+        idToMarketItem[tokenId].seller = payable(msg.sender);
+        idToMarketItem[tokenId].owner = payable(address(this));
+        _itemsSold--;
+
+        _transfer(msg.sender, address(this), tokenId);
+    }
+
+    /* Allows users to cancel their listing and retrieve the NFT */
+    function cancelListing(uint256 tokenId) public nonReentrant {
+        if (idToMarketItem[tokenId].seller != msg.sender) {
+            revert NotItemOwner();
+        }
+        
+        idToMarketItem[tokenId].owner = payable(msg.sender);
+        idToMarketItem[tokenId].seller = payable(address(0));
+        idToMarketItem[tokenId].sold = true; 
+        _itemsSold++;
+
+        _transfer(address(this), msg.sender, tokenId);
+    }
 }
