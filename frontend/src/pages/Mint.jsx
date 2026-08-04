@@ -59,7 +59,7 @@ const Mint = () => {
     if (chainId !== 34) {
       try {
         await switchChainAsync({ chainId: 34 });
-        return;
+        toast.success("Connected to SecureChain. Proceeding with mint...");
       } catch (e) {
         return toast.error("Please switch to SecureChain Mainnet");
       }
@@ -91,7 +91,6 @@ const Mint = () => {
         args: [uploadedTokenURI, priceInWei],
         value: listingPrice,
         chainId: 34,
-        type: 'legacy',
       });
       
       if (hash) {

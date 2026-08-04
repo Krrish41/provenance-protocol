@@ -1,7 +1,5 @@
 # Provenance Protocol
 
-🌐 **Live Demo**: [provenance-protocol](https://krrish41.github.io/provenance-protocol/)
-
 The **Provenance Protocol** is a full-stack, decentralized NFT Marketplace engineered specifically for the SCAI Mainnet.
 
 Built with a rigorous focus on security, gas efficiency, and optimized user experience, this platform facilitates the seamless minting, listing, discovery, and purchasing of non-fungible tokens (NFTs) in a completely decentralized environment.

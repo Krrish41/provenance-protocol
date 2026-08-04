@@ -40,7 +40,6 @@ const ManageAssetCard = ({ nft, isListed, onRefresh }) => {
         args: [BigInt(nft.tokenId), priceInWei],
         value: listingPrice,
         chainId: 34,
-        type: 'legacy',
         gas: 500000n,
         gasPrice: parseGwei('3.5'),
       });
@@ -73,7 +72,6 @@ const ManageAssetCard = ({ nft, isListed, onRefresh }) => {
         functionName: 'cancelListing',
         args: [BigInt(nft.tokenId)],
         chainId: 34,
-        type: 'legacy',
         gas: 500000n,
         gasPrice: parseGwei('3.5'),
       });

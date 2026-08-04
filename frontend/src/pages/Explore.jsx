@@ -117,9 +117,8 @@ const Explore = () => {
         toast.loading("Switching to SecureChain Mainnet...", { id: loadingToast });
         try {
           await switchChainAsync({ chainId: 34 });
-          toast.dismiss(loadingToast);
-          toast.success("Switched to SecureChain. Please click Buy again.");
-          return;
+          toast.success("Connected to SecureChain. Finalizing purchase...", { id: loadingToast });
+          // Continue with the purchase instead of returning early
         } catch (e) {
           toast.dismiss(loadingToast);
           return toast.error("Please switch your wallet to SecureChain Mainnet manually.");
@@ -143,7 +142,6 @@ const Explore = () => {
         args: [nft.tokenId],
         value: price,
         chainId: 34, // Explicitly target SCAI
-        type: 'legacy',
       });
 
       toast.loading("Transaction sent! Waiting for confirmation...", { id: loadingToast });

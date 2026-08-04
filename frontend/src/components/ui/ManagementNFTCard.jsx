@@ -33,7 +33,6 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         functionName: 'cancelListing',
         args: [BigInt(item.tokenId)],
         chainId: 34,
-        type: 'legacy',
         // Normal fee estimation: removed hardcoded gasPrice and limit
         account: address,
       });
@@ -80,7 +79,6 @@ const ManagementNFTCard = ({ item, isListed, onRefresh, onClick }) => {
         args: [BigInt(item.tokenId), parseEther(newPrice)],
         value: listingPrice,
         chainId: 34,
-        type: 'legacy',
         // Normal fee estimation
         account: address,
       });
