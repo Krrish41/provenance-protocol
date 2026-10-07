@@ -118,7 +118,9 @@ const Explore = () => {
         toast.loading("Switching to SecureChain Mainnet...", { id: loadingToast });
         try {
           await ensureSCAINetwork(currentChainId, switchChainAsync);
-          toast.success("Connected to SecureChain. Finalizing purchase...", { id: loadingToast });
+          toast.dismiss(loadingToast);
+          toast.success("Connected to SecureChain! Click Buy Asset to proceed.");
+          return;
         } catch (e) {
           toast.dismiss(loadingToast);
           return toast.error(e.message || "Please switch your wallet to SecureChain Mainnet.");

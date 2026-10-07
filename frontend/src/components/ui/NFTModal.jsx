@@ -1,10 +1,13 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShieldCheck, Cpu, Database, Wallet } from 'lucide-react';
-import { useAccount } from 'wagmi';
+import { X, ShieldCheck, Cpu, Database, Wallet, AlertTriangle } from 'lucide-react';
+import { useAccount, useSwitchChain } from 'wagmi';
 import { useWalletModal } from '../../context/WalletModalContext';
+import { SCAI_CHAIN_ID, ensureSCAINetwork } from '../../utils/chain';
+import toast from 'react-hot-toast';
 
 const NFTModal = ({ nft, isOpen, onClose, onAction }) => {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chainId } = useAccount();
+  const { switchChainAsync } = useSwitchChain();
   const { openWalletModal } = useWalletModal();
 
   if (!isOpen) return null;
@@ -14,10 +17,25 @@ const NFTModal = ({ nft, isOpen, onClose, onAction }) => {
     (nft.owner && nft.owner.toLowerCase() === address.toLowerCase())
   );
 
+  const isWrongNetwork = isConnected && chainId !== SCAI_CHAIN_ID;
+
   const getButtonState = () => {
-    if (!isConnected) return { text: 'Connect Wallet', action: openWalletModal, disabled: false };
-    if (isUserOwner) return { text: 'Owned by You', action: () => {}, disabled: true };
-    return { text: 'Buy Asset', action: () => onAction(nft), disabled: false };
+    if (!isConnected) return { text: 'Connect Wallet', action: openWalletModal, disabled: false, isWarning: false };
+    if (isUserOwner) return { text: 'Owned by You', action: () => {}, disabled: true, isWarning: false };
+    if (isWrongNetwork) return { 
+      text: 'Switch to SCAI Mainnet', 
+      action: async () => {
+        try {
+          await ensureSCAINetwork(chainId, switchChainAsync);
+          toast.success("Switched to SCAI Mainnet!");
+        } catch (err) {
+          toast.error(err.message || "Failed to switch network");
+        }
+      }, 
+      disabled: false, 
+      isWarning: true 
+    };
+    return { text: 'Buy Asset', action: () => onAction(nft), disabled: false, isWarning: false };
   };
 
   const button = getButtonState();
@@ -109,11 +127,18 @@ const NFTModal = ({ nft, isOpen, onClose, onAction }) => {
                   onClick={button.action}
                   disabled={button.disabled || nft.isPending}
                   className={`provenance-btn w-full !py-3.5 md:!py-4 !text-xs md:!text-sm ${
-                    (button.disabled || nft.isPending) ? 'opacity-50' : ''
-                  }`}
+                    button.isWarning
+                      ? '!border-red-500 !text-red-400 hover:!bg-red-950/60 !shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse'
+                      : ''
+                  } ${(button.disabled || nft.isPending) ? 'opacity-50' : ''}`}
                 >
                   {nft.isPending ? (
                     <>Syncing Protocol...</>
+                  ) : button.isWarning ? (
+                    <>
+                      <AlertTriangle size={16} className="md:w-[18px] mr-2 text-red-400" />
+                      {button.text}
+                    </>
                   ) : (
                     <>
                       <Wallet size={16} className="md:w-[18px] mr-2" />
