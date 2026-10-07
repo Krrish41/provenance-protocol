@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Environment Variables
+.env
+.env*
+*.env
+**/.env*
+!.env.example
+!**/.env.example
+
+# Build and Output
+dist/
+build/
+coverage/
+frontend/dist/
+frontend/dist-ssr/
+
+# Hardhat artifacts
+contracts/artifacts/
+contracts/cache/
+contracts/typechain/
+
+# System and logs
+.DS_Store
+*.log
